@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+@theme {
+	--font-heading: 'Bowbly One', sans-serif;
+	--font-table: 'Helvetica', sans-serif;
+}
+
+@keyframes blink {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0; }
+}
+
+@keyframes fade-in {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+@keyframes scale-in {
+	0% {
+		transform: scale(0);
+		opacity: 0;
+	}
+	50% {
+		transform: scale(1.1);
+	}
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
+}
+
+@keyframes shimmer {
+	0% {
+		transform: translateX(-100%) translateY(-50%) rotate(12deg);
+	}
+	100% {
+		transform: translateX(300%) translateY(-50%) rotate(12deg);
+	}
+}
+
+.animate-blink {
+	animation: blink 1s infinite;
+}
+
+.animate-fade-in {
+	animation: fade-in 0.3s ease-out;
+}
+
+.animate-scale-in {
+	animation: scale-in 0.5s ease-out;
+}
+
+.animate-shimmer {
+	animation: shimmer 1.5s ease-in-out;
+}
+
+body {
+	font-family: 'Caudex', sans-serif;
+	/* background-image: linear-gradient(180deg, cadetblue, cornflowerblue); */
+	@apply bg-indigo-900;
+	max-width: 100%;
+	overflow-x: hidden;
+	/* @apply bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-700; */
+}
+
+html {
+	overflow-x: hidden;
+	width: 100%;
+}
+
+::-webkit-scrollbar {
+    width: 5px;
+    background-color: #323232;
+}
+
+::-webkit-scrollbar-thumb {
+	background: #CACACD;
+}
+
+.heading-hero {
+    font-family: var(--font-heading);
+    font-weight: 1000;
+    text-transform: uppercase;
+}
+
+.heading-subtitle {
+	font-family: var(--font-heading);
+	font-weight: 500;
+	text-transform: uppercase;
+}
+
+.text-table {
+	font-family: var(--font-table);
+}
