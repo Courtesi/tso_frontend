@@ -287,7 +287,7 @@ function Dashboard() {
 																<div className="text-sm text-white font-medium">
 																	{bet.bet1.team}
 																	<span className="ml-2 px-2 py-0.5 text-xs text-gray-300">
-																		{bet.bet1.odds >= 2 ? '+' : ''}{((bet.bet1.odds - 1) * 100).toFixed(0)}
+																		{bet.bet1.odds}
 																	</span>
 																</div>
 															</td>
@@ -326,7 +326,7 @@ function Dashboard() {
 																<div className="text-sm text-white font-medium">
 																	{bet.bet2.team}
 																	<span className="ml-2 px-2 py-0.5 text-xs text-gray-300">
-																		{bet.bet2.odds >= 2 ? '+' : ''}{((bet.bet2.odds - 1) * 100).toFixed(0)}
+																		{bet.bet2.odds}
 																	</span>
 																</div>
 															</td>
