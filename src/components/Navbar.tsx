@@ -18,11 +18,13 @@ function Navbar({ onAuthModalOpen }: NavbarProps) {
 
 	// Check which page we're on
 	const isDashboard = location.pathname === '/dashboard';
+	const isTerminal = location.pathname === '/terminal';
 	const isPricing = location.pathname === '/pricing';
 	const isHome = location.pathname === '/';
+	const isUserPage = isDashboard || isTerminal;
 
 	return (
-		<div className={`bg-indigo-900 ${isDashboard ? 'md:bg-gray-900' : 'md:bg-transparent'} justify-center fixed top-0 left-0 right-0 z-30 h-17`}>
+		<div className={`bg-indigo-900 ${isUserPage ? 'md:bg-gray-900' : 'md:bg-transparent'} justify-center fixed top-0 left-0 right-0 z-30 h-17`}>
 			{/* Floating Logo - stays fixed on screen */}
 			<div className="fixed top-5 md:top-4 left-6 z-40">
 				<button
@@ -36,11 +38,36 @@ function Navbar({ onAuthModalOpen }: NavbarProps) {
 
 			{/* Mobile Menu - Top Right (Mobile Only) */}
 			<div className="fixed right-6 top-3 z-40 md:hidden">
-				{isDashboard ? <DashboardMobileMenu /> : <MobileMenu />}
+				{isUserPage ? <DashboardMobileMenu /> : <MobileMenu />}
 			</div>
 
 			{/* Desktop Nav - Top Right (Desktop Only) */}
 			<div className="hidden md:flex fixed top-4 right-6 z-40 items-center gap-3">
+				{/* Dashboard/Terminal Navigation - Show when logged in */}
+				{currentUser && isUserPage && (
+					<div className="flex gap-2 mr-2">
+						<button
+							onClick={() => navigate('/dashboard')}
+							className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+								isDashboard
+									? 'bg-indigo-600 text-white'
+									: 'bg-gray-800/80 hover:bg-gray-700 text-gray-300'
+							}`}
+						>
+							Arbitrage
+						</button>
+						<button
+							onClick={() => navigate('/terminal')}
+							className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+								isTerminal
+									? 'bg-indigo-600 text-white'
+									: 'bg-gray-800/80 hover:bg-gray-700 text-gray-300'
+							}`}
+						>
+							Terminal
+						</button>
+					</div>
+				)}
 				{/* Bug Report Button - Always visible */}
 				{!isHome && (
 					<button
@@ -63,7 +90,7 @@ function Navbar({ onAuthModalOpen }: NavbarProps) {
 						Upgrade
 					</button>
 				)}
-				{isDashboard ? (
+				{isUserPage ? (
 				<UserMenu />
 			) : currentUser ? (
 					<button
