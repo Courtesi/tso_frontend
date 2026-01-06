@@ -18,11 +18,11 @@ function Sidebar({ isOpen = true }: SidebarProps) {
 			path: '/terminal',
 			description: 'Line movement tracker'
 		},
-		{
-			name: 'Settings',
-			path: '/settings',
-			description: 'Account settings'
-		},
+		// {
+		// 	name: 'Settings',
+		// 	path: '/settings',
+		// 	description: 'Account settings'
+		// },
 	];
 
 	return (

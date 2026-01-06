@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Terminal from './pages/Terminal';
 import Subscription from './pages/Subscription';
+import NotFound from './pages/NotFound';
 import VerificationBanner from './components/VerificationBanner';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
 							<Route path="/terminal" element={<Terminal />} />
 							<Route path="/pricing" element={<Subscription />} />
 							<Route path="/subscription" element={<Subscription />} />
+							<Route path="*" element={<NotFound />} />
 						</Routes>
 					</ParticlesProvider>
 				</StripeProvider>
