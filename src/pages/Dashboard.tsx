@@ -2,6 +2,7 @@ import { useState, useEffect, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/Navbar';
+import Sidebar from '../components/Sidebar';
 import { api } from '../services/api';
 
 interface BetSide {
@@ -164,9 +165,10 @@ function Dashboard() {
 		<div className="min-h-screen text-white relative bg-zinc-800">
 
 			<Navbar/>
+			<Sidebar />
 
 			{/* Main Content */}
-			<div className="px-4 py-20 pt-32">
+			<div className="ml-64 px-4 py-20 pt-24">
 				{/* Dashboard Header */}
 				<div className="max-w-7xl mx-auto mb-16">
 					<div className="flex items-center justify-between mb-6">

@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/Navbar';
-import { api, GameTerminalData, MarketLines } from '../services/api';
+import Sidebar from '../components/Sidebar';
+import { api, type GameTerminalData } from '../services/api';
 import GameLineChart from '../components/GameLineChart';
 import GameListSidebar from '../components/GameListSidebar';
 
@@ -12,7 +13,6 @@ function Terminal() {
 
 	const [games, setGames] = useState<GameTerminalData[]>([]);
 	const [selectedGame, setSelectedGame] = useState<GameTerminalData | null>(null);
-	const [selectedMarket, setSelectedMarket] = useState<MarketLines | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState('');
 	const [useSSE, setUseSSE] = useState(true);
@@ -21,6 +21,14 @@ function Terminal() {
 	const [leagueFilter, setLeagueFilter] = useState<string>('');
 	const [gameTimeFilter, setGameTimeFilter] = useState<string>('upcoming');
 
+	// Ref to track current filter values to prevent race conditions
+	const currentFiltersRef = useRef({ league: leagueFilter, gameTime: gameTimeFilter });
+
+	// Update ref whenever filters change
+	useEffect(() => {
+		currentFiltersRef.current = { league: leagueFilter, gameTime: gameTimeFilter };
+	}, [leagueFilter, gameTimeFilter]);
+
 	useEffect(() => {
 		if (authLoading) return;
 		if (!currentUser) {
@@ -28,23 +36,38 @@ function Terminal() {
 			return;
 		}
 
+		// Capture current filter values for this effect instance
+		const effectFilters = { league: leagueFilter, gameTime: gameTimeFilter };
+
 		if (useSSE) {
 			setLoading(true);
 			setError('');
 
 			const cleanup = api.streamTerminal(
 				(data) => {
+					// Ignore stale data from old connections
+					if (currentFiltersRef.current.league !== effectFilters.league ||
+					    currentFiltersRef.current.gameTime !== effectFilters.gameTime) {
+						return;
+					}
+
 					setGames(data.data);
 					setError('');
 					setLoading(false);
 
-					// Auto-select first game if none selected
-					if (!selectedGame && data.data.length > 0) {
-						setSelectedGame(data.data[0]);
-						if (data.data[0].markets.length > 0) {
-							setSelectedMarket(data.data[0].markets[0]);
+					// Preserve selected game across updates by matching event_id
+					setSelectedGame(prevSelected => {
+						if (!prevSelected) {
+							// No game selected yet, auto-select first
+							return data.data.length > 0 ? data.data[0] : null;
 						}
-					}
+
+						// Find the updated version of the currently selected game
+						const updatedGame = data.data.find(g => g.event_id === prevSelected.event_id);
+
+						// If game still exists, use updated version; otherwise keep current or select first
+						return updatedGame || data.data[0] || prevSelected;
+					});
 				},
 				(err) => {
 					console.error('SSE failed, falling back to polling:', err);
@@ -63,14 +86,24 @@ function Terminal() {
 
 				try {
 					const response = await api.getTerminalData(leagueFilter, gameTimeFilter);
+
+					// Ignore stale data
+					if (currentFiltersRef.current.league !== effectFilters.league ||
+					    currentFiltersRef.current.gameTime !== effectFilters.gameTime) {
+						return;
+					}
+
 					setGames(response.data);
 
-					if (!selectedGame && response.data.length > 0) {
-						setSelectedGame(response.data[0]);
-						if (response.data[0].markets.length > 0) {
-							setSelectedMarket(response.data[0].markets[0]);
+					// Preserve selected game across updates
+					setSelectedGame(prevSelected => {
+						if (!prevSelected) {
+							return response.data.length > 0 ? response.data[0] : null;
 						}
-					}
+
+						const updatedGame = response.data.find(g => g.event_id === prevSelected.event_id);
+						return updatedGame || response.data[0] || prevSelected;
+					});
 				} catch (err: any) {
 					console.error('Error fetching terminal data:', err);
 					setError(err.message || 'Failed to load terminal data');
@@ -101,8 +134,9 @@ function Terminal() {
 	return (
 		<div className="min-h-screen text-white relative bg-zinc-800">
 			<Navbar />
+			<Sidebar />
 
-			<div className="px-4 py-20 pt-32">
+			<div className="ml-64 px-4 py-20 pt-24">
 				{/* Header */}
 				<div className="max-w-7xl mx-auto mb-8">
 					<h1 className="text-4xl font-bold mb-4">Line Movement Terminal</h1>
@@ -168,23 +202,14 @@ function Terminal() {
 								<GameListSidebar
 									games={games}
 									selectedGame={selectedGame}
-									onSelectGame={(game) => {
-										setSelectedGame(game);
-										if (game.markets.length > 0) {
-											setSelectedMarket(game.markets[0]);
-										}
-									}}
+									onSelectGame={setSelectedGame}
 								/>
 							</div>
 
 							{/* Chart Area */}
 							<div className="col-span-12 lg:col-span-9">
-								{selectedGame && selectedMarket ? (
-									<GameLineChart
-										game={selectedGame}
-										market={selectedMarket}
-										onMarketChange={setSelectedMarket}
-									/>
+								{selectedGame ? (
+									<GameLineChart game={selectedGame} />
 								) : (
 									<div className="bg-gray-800 rounded-lg p-12 text-center">
 										<p className="text-gray-400">Select a game to view line movements</p>

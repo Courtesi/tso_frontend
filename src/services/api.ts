@@ -46,6 +46,7 @@ export interface OutcomeLine {
 	history: LineDataPoint[];
 	current_best_odds: number;
 	current_best_sportsbook: string;
+	history_by_sportsbook?: Record<string, LineDataPoint[]>;
 }
 
 export interface MarketLines {

@@ -43,31 +43,6 @@ function Navbar({ onAuthModalOpen }: NavbarProps) {
 
 			{/* Desktop Nav - Top Right (Desktop Only) */}
 			<div className="hidden md:flex fixed top-4 right-6 z-40 items-center gap-3">
-				{/* Dashboard/Terminal Navigation - Show when logged in */}
-				{currentUser && isUserPage && (
-					<div className="flex gap-2 mr-2">
-						<button
-							onClick={() => navigate('/dashboard')}
-							className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-								isDashboard
-									? 'bg-indigo-600 text-white'
-									: 'bg-gray-800/80 hover:bg-gray-700 text-gray-300'
-							}`}
-						>
-							Arbitrage
-						</button>
-						<button
-							onClick={() => navigate('/terminal')}
-							className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-								isTerminal
-									? 'bg-indigo-600 text-white'
-									: 'bg-gray-800/80 hover:bg-gray-700 text-gray-300'
-							}`}
-						>
-							Terminal
-						</button>
-					</div>
-				)}
 				{/* Bug Report Button - Always visible */}
 				{!isHome && (
 					<button

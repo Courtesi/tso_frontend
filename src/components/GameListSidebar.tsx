@@ -1,4 +1,4 @@
-import { GameTerminalData } from '../services/api';
+import { type GameTerminalData } from '../services/api';
 
 interface GameListSidebarProps {
 	games: GameTerminalData[];
@@ -36,7 +36,7 @@ function GameListSidebar({ games, selectedGame, onSelectGame }: GameListSidebarP
 										: 'bg-gray-700 hover:bg-gray-600 text-gray-200'
 								}`}
 							>
-								<div className="text-sm font-medium">{game.matchup}</div>
+								<div className="text-sm font-medium">{game.matchup.replace(/_/g, ' ')}</div>
 								<div className="text-xs opacity-75 mt-1">{game.league}</div>
 								<div className="text-xs opacity-75">{gameTime}</div>
 								{game.game_status === 'live' && (
