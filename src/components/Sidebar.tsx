@@ -11,18 +11,21 @@ function Sidebar({ isOpen = true }: SidebarProps) {
 		{
 			name: 'Arbitrage',
 			path: '/dashboard',
-			description: 'Live betting opportunities'
+			description: 'Live betting opportunities',
+			available: true
 		},
 		{
-			name: 'Terminal',
-			path: '/terminal',
-			description: 'Line movement tracker'
+			name: 'Odds Charts',
+			path: '/charts',
+			description: 'Line movement tracker',
+			available: true
 		},
-		// {
-		// 	name: 'Settings',
-		// 	path: '/settings',
-		// 	description: 'Account settings'
-		// },
+		{
+			name: '+EV Bets (Coming soon)',
+			path: '/ev-bets',
+			description: 'Positive EV bets',
+			available: false
+		}
 	];
 
 	return (
@@ -34,6 +37,18 @@ function Sidebar({ isOpen = true }: SidebarProps) {
 					{navItems.map((item) => {
 						const isActive = location.pathname === item.path;
 
+						if (!item.available) {
+							// Return grayed out, not available version
+							return (
+								<div
+									key={item.path}
+									className="block px-4 py-3 rounded-lg opacity-50 cursor-not-allowed"
+								>
+									<div className="font-medium text-gray-500">{item.name}</div>
+									<div className="text-xs text-gray-600">{item.description}</div>
+								</div>
+							);
+						}
 						return (
 							<Link
 								key={item.path}

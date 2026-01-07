@@ -198,7 +198,7 @@ function GameLineChart({ game }: GameLineChartProps) {
 					<button
 						key={outcome.outcome_id}
 						onClick={() => setSelectedOutcome(outcome)}
-						className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+						className={`px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer ${
 							selectedOutcome?.outcome_id === outcome.outcome_id
 								? 'bg-indigo-600 text-white'
 								: 'bg-gray-700 text-gray-300 hover:bg-gray-600'

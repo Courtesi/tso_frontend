@@ -4,7 +4,7 @@ import { StripeProvider } from './contexts/StripeContext';
 import { ParticlesProvider } from './contexts/ParticlesContext';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
-import Terminal from './pages/Terminal';
+import Charts from './pages/Charts';
 import Subscription from './pages/Subscription';
 import NotFound from './pages/NotFound';
 import VerificationBanner from './components/VerificationBanner';
@@ -19,7 +19,7 @@ function App() {
 						<Routes>
 							<Route path="/" element={<Home />} />
 							<Route path="/dashboard" element={<Dashboard />} />
-							<Route path="/terminal" element={<Terminal />} />
+							<Route path="/charts" element={<Charts />} />
 							<Route path="/pricing" element={<Subscription />} />
 							<Route path="/subscription" element={<Subscription />} />
 							<Route path="*" element={<NotFound />} />

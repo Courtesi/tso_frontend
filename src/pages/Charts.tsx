@@ -7,7 +7,7 @@ import { api, type GameTerminalData } from '../services/api';
 import GameLineChart from '../components/GameLineChart';
 import GameListSidebar from '../components/GameListSidebar';
 
-function Terminal() {
+function Charts() {
 	const { currentUser, userTier, loading: authLoading } = useAuth();
 	const navigate = useNavigate();
 
@@ -139,7 +139,7 @@ function Terminal() {
 			<div className="ml-64 px-4 py-20 pt-24">
 				{/* Header */}
 				<div className="max-w-7xl mx-auto mb-8">
-					<h1 className="text-4xl font-bold mb-4">Line Movement Terminal</h1>
+					<h1 className="text-4xl font-bold mb-4">Odds Charts</h1>
 
 					{/* Info banner for free users */}
 					{userTier === 'free' && (
@@ -159,7 +159,7 @@ function Terminal() {
 						<select
 							value={gameTimeFilter}
 							onChange={(e) => setGameTimeFilter(e.target.value)}
-							className="bg-gray-700 text-white px-4 py-2 rounded-lg"
+							className="bg-gray-700 text-white px-4 py-2 rounded-lg cursor-pointer"
 						>
 							<option value="upcoming">Upcoming Games</option>
 							<option value="live">Live Games</option>
@@ -168,7 +168,7 @@ function Terminal() {
 						<select
 							value={leagueFilter}
 							onChange={(e) => setLeagueFilter(e.target.value)}
-							className="bg-gray-700 text-white px-4 py-2 rounded-lg"
+							className="bg-gray-700 text-white px-4 py-2 rounded-lg cursor-pointer"
 						>
 							<option value="">All Leagues</option>
 							<option value="NBA">NBA</option>
@@ -233,4 +233,4 @@ function Terminal() {
 	);
 }
 
-export default Terminal;
+export default Charts;

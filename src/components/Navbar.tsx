@@ -18,7 +18,7 @@ function Navbar({ onAuthModalOpen }: NavbarProps) {
 
 	// Check which page we're on
 	const isDashboard = location.pathname === '/dashboard';
-	const isTerminal = location.pathname === '/terminal';
+	const isTerminal = location.pathname === '/charts';
 	const isPricing = location.pathname === '/pricing';
 	const isHome = location.pathname === '/';
 	const isUserPage = isDashboard || isTerminal;
@@ -32,7 +32,7 @@ function Navbar({ onAuthModalOpen }: NavbarProps) {
 					className="md:mt-1 flex gap-2 cursor-pointer"
 				>
 					<img src="/logo.png" alt="Trueshot Logo" className="w-8" />
-					<span className="font-extrabold text-2xl">Trueshot</span>
+					<span className="font-extrabold text-2xl text-gray-50">Trueshot</span>
 				</button>
 			</div>
 
@@ -73,7 +73,7 @@ function Navbar({ onAuthModalOpen }: NavbarProps) {
 						className="bg-gray-800 hover:bg-gray-700 px-5 py-2 rounded-2xl transition-colors shadow-lg cursor-pointer"
 						aria-label="Open Dashboard"
 					>
-						<div className="font-bold text-lg">
+						<div className="font-bold text-lg text-gray-50">
 							Open Dashboard
 						</div>
 					</button>
