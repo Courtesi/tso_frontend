@@ -1,33 +1,26 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useData } from '../contexts/DataContext';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
-import { api, type GameTerminalData } from '../services/api';
 import GameLineChart from '../components/GameLineChart';
 import GameListSidebar from '../components/GameListSidebar';
 
 function Charts() {
 	const { currentUser, userTier, loading: authLoading } = useAuth();
+	const {
+		chartsData: games,
+		chartsLoading: loading,
+		chartsError: error,
+		selectedGame,
+		setSelectedGame,
+		leagueFilter,
+		setLeagueFilter,
+		gameTimeFilter,
+		setGameTimeFilter
+	} = useData();
 	const navigate = useNavigate();
-
-	const [games, setGames] = useState<GameTerminalData[]>([]);
-	const [selectedGame, setSelectedGame] = useState<GameTerminalData | null>(null);
-	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState('');
-	const [useSSE, setUseSSE] = useState(true);
-
-	// Filters
-	const [leagueFilter, setLeagueFilter] = useState<string>('');
-	const [gameTimeFilter, setGameTimeFilter] = useState<string>('upcoming');
-
-	// Ref to track current filter values to prevent race conditions
-	const currentFiltersRef = useRef({ league: leagueFilter, gameTime: gameTimeFilter });
-
-	// Update ref whenever filters change
-	useEffect(() => {
-		currentFiltersRef.current = { league: leagueFilter, gameTime: gameTimeFilter };
-	}, [leagueFilter, gameTimeFilter]);
 
 	useEffect(() => {
 		if (authLoading) return;
@@ -35,91 +28,7 @@ function Charts() {
 			navigate('/');
 			return;
 		}
-
-		// Capture current filter values for this effect instance
-		const effectFilters = { league: leagueFilter, gameTime: gameTimeFilter };
-
-		if (useSSE) {
-			setLoading(true);
-			setError('');
-
-			const cleanup = api.streamTerminal(
-				(data) => {
-					// Ignore stale data from old connections
-					if (currentFiltersRef.current.league !== effectFilters.league ||
-					    currentFiltersRef.current.gameTime !== effectFilters.gameTime) {
-						return;
-					}
-
-					setGames(data.data);
-					setError('');
-					setLoading(false);
-
-					// Preserve selected game across updates by matching event_id
-					setSelectedGame(prevSelected => {
-						if (!prevSelected) {
-							// No game selected yet, auto-select first
-							return data.data.length > 0 ? data.data[0] : null;
-						}
-
-						// Find the updated version of the currently selected game
-						const updatedGame = data.data.find(g => g.event_id === prevSelected.event_id);
-
-						// If game still exists, use updated version; otherwise keep current or select first
-						return updatedGame || data.data[0] || prevSelected;
-					});
-				},
-				(err) => {
-					console.error('SSE failed, falling back to polling:', err);
-					setUseSSE(false);
-				},
-				leagueFilter,
-				gameTimeFilter
-			);
-
-			return cleanup;
-		} else {
-			// Polling fallback
-			const fetchData = async (isInitial = false) => {
-				if (isInitial) setLoading(true);
-				setError('');
-
-				try {
-					const response = await api.getTerminalData(leagueFilter, gameTimeFilter);
-
-					// Ignore stale data
-					if (currentFiltersRef.current.league !== effectFilters.league ||
-					    currentFiltersRef.current.gameTime !== effectFilters.gameTime) {
-						return;
-					}
-
-					setGames(response.data);
-
-					// Preserve selected game across updates
-					setSelectedGame(prevSelected => {
-						if (!prevSelected) {
-							return response.data.length > 0 ? response.data[0] : null;
-						}
-
-						const updatedGame = response.data.find(g => g.event_id === prevSelected.event_id);
-						return updatedGame || response.data[0] || prevSelected;
-					});
-				} catch (err: any) {
-					console.error('Error fetching terminal data:', err);
-					setError(err.message || 'Failed to load terminal data');
-				} finally {
-					if (isInitial) setLoading(false);
-				}
-			};
-
-			fetchData(true);
-
-			const pollInterval = userTier === 'premium' ? 5000 : 60000;
-			const intervalId = setInterval(() => fetchData(false), pollInterval);
-
-			return () => clearInterval(intervalId);
-		}
-	}, [currentUser, navigate, authLoading, userTier, useSSE, leagueFilter, gameTimeFilter]);
+	}, [currentUser, navigate, authLoading]);
 
 	if (authLoading) {
 		return (

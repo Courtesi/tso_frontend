@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { StripeProvider } from './contexts/StripeContext';
 import { ParticlesProvider } from './contexts/ParticlesContext';
+import { DataProvider } from './contexts/DataContext';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Charts from './pages/Charts';
@@ -14,17 +15,19 @@ function App() {
 		<Router>
 			<AuthProvider>
 				<StripeProvider>
-					<ParticlesProvider>
-						<VerificationBanner />
-						<Routes>
-							<Route path="/" element={<Home />} />
-							<Route path="/dashboard" element={<Dashboard />} />
-							<Route path="/charts" element={<Charts />} />
-							<Route path="/pricing" element={<Subscription />} />
-							<Route path="/subscription" element={<Subscription />} />
-							<Route path="*" element={<NotFound />} />
-						</Routes>
-					</ParticlesProvider>
+					<DataProvider>
+						<ParticlesProvider>
+							<VerificationBanner />
+							<Routes>
+								<Route path="/" element={<Home />} />
+								<Route path="/dashboard" element={<Dashboard />} />
+								<Route path="/charts" element={<Charts />} />
+								<Route path="/pricing" element={<Subscription />} />
+								<Route path="/subscription" element={<Subscription />} />
+								<Route path="*" element={<NotFound />} />
+							</Routes>
+						</ParticlesProvider>
+					</DataProvider>
 				</StripeProvider>
 			</AuthProvider>
 		</Router>

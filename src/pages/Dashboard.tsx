@@ -1,9 +1,9 @@
 import { useState, useEffect, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useData } from '../contexts/DataContext';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
-import { api } from '../services/api';
 
 interface BetSide {
 	team: string;
@@ -27,12 +27,9 @@ interface ArbitrageBet {
 
 function Dashboard() {
 	const { currentUser, userTier, loading: authLoading, refreshToken } = useAuth();
+	const { arbData: bettingData, arbLoading: loading, arbError: error } = useData();
 	const navigate = useNavigate();
-	const [bettingData, setBettingData] = useState<ArbitrageBet[]>([]);
-	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState('');
 	const [successMessage, setSuccessMessage] = useState('');
-	const [useSSE, setUseSSE] = useState(true); // Flag to fall back to polling if SSE fails
 
 	// Helper function to get sportsbook icon path
 	const getSportsbookIcon = (sportsbookName: string): string | null => {
@@ -100,55 +97,7 @@ function Dashboard() {
 			navigate('/');
 			return;
 		}
-
-		if (useSSE) {
-			// Try SSE first
-			setLoading(true);
-			setError('');
-
-			const cleanup = api.streamArbs(
-				(data) => {
-					// Success - update data
-					setBettingData(data.data);
-					setError('');
-					setLoading(false);
-				},
-				(err) => {
-					// Error - fall back to polling
-					console.error('SSE failed, falling back to polling:', err);
-					setUseSSE(false);
-				}
-			);
-
-			return cleanup; // Cleanup on unmount
-		} else {
-			// Fallback to polling (original code)
-			const fetchData = async (isInitial = false) => {
-				if (isInitial) setLoading(true);
-				setError('');
-
-				try {
-					const response = await api.getArbs();
-					setBettingData(response.data);
-				} catch (err: any) {
-					console.error('Error fetching data:', err);
-					setError(err.message || 'Failed to load data');
-				} finally {
-					if (isInitial) setLoading(false);
-				}
-			};
-
-			// Initial fetch (shows loading)
-			fetchData(true);
-
-			// Set up polling based on tier (no loading flash)
-			const pollInterval = userTier === 'premium' ? 5000 : 60000; // 5s for premium, 60s for free
-			const intervalId = setInterval(() => fetchData(false), pollInterval);
-
-			// Cleanup on unmount or when dependencies change
-			return () => clearInterval(intervalId);
-		}
-	}, [currentUser, navigate, authLoading, userTier, useSSE]);
+	}, [currentUser, navigate, authLoading]);
 
 	// Show loading screen while auth is initializing
 	if (authLoading) {
