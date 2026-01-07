@@ -5,25 +5,25 @@ import { useData } from '../contexts/DataContext';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 
-interface BetSide {
-	team: string;
-	odds: number;
-	sportsbook: string;
-	stake: number;
-}
+// interface BetSide {
+// 	team: string;
+// 	odds: number;
+// 	sportsbook: string;
+// 	stake: number;
+// }
 
-interface ArbitrageBet {
-	id: number;
-	league: string;
-	matchup: string;
-	market: string;
-	game_time: string;
-	profit_percentage: number;
-	bet1: BetSide;
-	bet2: BetSide;
-	found_at: string;
-	expires_in_minutes: number;
-}
+// interface ArbitrageBet {
+// 	id: number;
+// 	league: string;
+// 	matchup: string;
+// 	market: string;
+// 	game_time: string;
+// 	profit_percentage: number;
+// 	bet1: BetSide;
+// 	bet2: BetSide;
+// 	found_at: string;
+// 	expires_in_minutes: number;
+// }
 
 function Dashboard() {
 	const { currentUser, userTier, loading: authLoading, refreshToken } = useAuth();

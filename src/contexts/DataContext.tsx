@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { api, type GameTerminalData } from '../services/api';
