@@ -73,7 +73,7 @@ function Subscription() {
 
 	const handleCheckout = async (priceId: string) => {
 		if (!currentUser) {
-			alert('Please sign in to subscribe');
+			setIsAuthModalOpen(true);
 			return;
 		}
 
