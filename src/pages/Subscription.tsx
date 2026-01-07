@@ -241,6 +241,18 @@ function Subscription() {
 								>
 									Current Plan
 								</button>
+							) : currentUser && userTier === 'premium' ? (
+								<div className="relative group">
+									<button
+										disabled
+										className="w-full backdrop-blur-lg bg-gray-700/50 text-gray-400 font-semibold py-3 px-8 rounded-lg cursor-not-allowed"
+									>
+										Choose
+									</button>
+									<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap border border-gray-700 shadow-lg">
+										Manage your subscription through "Manage Subscription"
+									</div>
+								</div>
 							) : (
 								<button
 									onClick={() => setIsAuthModalOpen(true)}
