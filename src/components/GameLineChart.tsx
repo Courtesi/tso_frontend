@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { createChart, type IChartApi, type ISeriesApi, type LineData, LineSeries} from 'lightweight-charts';
 import { type GameTerminalData, type OutcomeLine } from '../services/api';
 
@@ -13,7 +13,12 @@ function GameLineChart({ game }: GameLineChartProps) {
 
 	// Get moneyline market (should only be one)
 	const moneylineMarket = game.markets.find(m => m.market_type === 'MONEY');
-	const outcomes = moneylineMarket?.outcomes || [];
+
+	// Memoize outcomes to prevent new array creation on every render
+	const outcomes = useMemo(
+		() => moneylineMarket?.outcomes || [],
+		[moneylineMarket?.outcomes]
+	);
 
 	// State for selected team/outcome
 	const [selectedOutcome, setSelectedOutcome] = useState<OutcomeLine | null>(
@@ -22,26 +27,24 @@ function GameLineChart({ game }: GameLineChartProps) {
 
 	// Update selected outcome when game changes or data refreshes
 	useEffect(() => {
-		if (outcomes.length > 0) {
-			// Preserve selection by outcome_id across data refreshes
-			if (selectedOutcome) {
-				const updatedOutcome = outcomes.find(o => o.outcome_id === selectedOutcome.outcome_id);
-
-				if (updatedOutcome) {
-					// Update to new version of same outcome (preserves selection during refresh)
-					setSelectedOutcome(updatedOutcome);
-				} else {
-					// Outcome no longer exists (game changed), select first
-					setSelectedOutcome(outcomes[0]);
-				}
-			} else {
-				// No outcome selected yet, select first
-				setSelectedOutcome(outcomes[0]);
+		// Use functional update to access previous state without adding it to dependencies
+		setSelectedOutcome(prevSelected => {
+			// No outcomes available, clear selection
+			if (outcomes.length === 0) {
+				return null;
 			}
-		} else {
-			setSelectedOutcome(null);
-		}
-	}, [outcomes]); // Depend on outcomes array to catch data updates
+
+			// Preserve selection by outcome_id across data refreshes
+			if (prevSelected) {
+				const updatedOutcome = outcomes.find(o => o.outcome_id === prevSelected.outcome_id);
+				// Return updated version of same outcome, or fall back to first outcome
+				return updatedOutcome || outcomes[0];
+			}
+
+			// No previous selection, select first outcome
+			return outcomes[0];
+		});
+	}, [outcomes]);
 
 	// Initialize chart
 	useEffect(() => {
@@ -66,11 +69,14 @@ function GameLineChart({ game }: GameLineChartProps) {
 
 		chartRef.current = chart;
 
+		// Capture ref values for cleanup
+		const currentSeriesRefs = seriesRefs.current;
+
 		// Cleanup on unmount
 		return () => {
 			chart.remove();
 			chartRef.current = null;
-			seriesRefs.current.clear();
+			currentSeriesRefs.clear();
 		};
 	}, []);
 
@@ -131,9 +137,14 @@ function GameLineChart({ game }: GameLineChartProps) {
 				title: sportsbook,
 			});
 
-			// Convert history to chart data
+			// Convert history to chart data with local timezone adjustment
+			// getTimezoneOffset() returns minutes difference from UTC (positive for west of UTC)
+			// We subtract this offset to convert UTC timestamps to local time for display
+			const timezoneOffsetSeconds = new Date().getTimezoneOffset() * 60;
+
 			const rawData: LineData[] = history.map((point) => ({
-				time: point.timestamp as LineData['time'],
+				// Adjust Unix timestamp to display in local timezone instead of UTC
+				time: (point.timestamp - timezoneOffsetSeconds) as LineData['time'],
 				value: point.odds,
 			}));
 
