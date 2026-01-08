@@ -29,7 +29,7 @@ function Sidebar({ isOpen = true }: SidebarProps) {
 	];
 
 	return (
-		<div className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-gray-900 border-r border-gray-800 transition-all duration-300 ${
+		<div className={`hidden md:block fixed left-0 top-16 h-[calc(100vh-4rem)] bg-gray-900 border-r border-gray-800 transition-all duration-300 ${
 			isOpen ? 'w-64' : 'w-0'
 		} overflow-hidden`}>
 			<div className="p-4">

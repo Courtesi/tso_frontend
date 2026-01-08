@@ -37,8 +37,7 @@ function GameListSidebar({ games, selectedGame, onSelectGame }: GameListSidebarP
 								}`}
 							>
 								<div className="text-sm font-medium">{game.matchup.replace(/_/g, ' ')}</div>
-								<div className="text-xs opacity-75 mt-1">{game.league}</div>
-								<div className="text-xs opacity-75">{gameTime}</div>
+								<div className="text-xs opacity-75 mt-1">{game.league} | {gameTime}</div>
 								{game.game_status === 'live' && (
 									<div className="text-xs text-red-400 font-bold mt-1">LIVE</div>
 								)}

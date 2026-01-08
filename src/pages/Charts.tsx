@@ -45,11 +45,9 @@ function Charts() {
 			<Navbar />
 			<Sidebar />
 
-			<div className="ml-64 px-4 py-20 pt-24">
+			<div className="md:ml-64 px-4 py-20 pt-24">
 				{/* Header */}
 				<div className="max-w-7xl mx-auto mb-8">
-					<h1 className="text-4xl font-bold mb-4">Odds Charts</h1>
-
 					{/* Info banner for free users */}
 					{userTier === 'free' && (
 						<div className="bg-yellow-900 bg-opacity-50 border border-yellow-500 rounded-lg p-4 mb-6">
@@ -62,32 +60,6 @@ function Charts() {
 							</p>
 						</div>
 					)}
-
-					{/* Filters */}
-					<div className="flex gap-4 mb-6">
-						<select
-							value={gameTimeFilter}
-							onChange={(e) => setGameTimeFilter(e.target.value)}
-							className="bg-gray-700 text-white px-4 py-2 rounded-lg cursor-pointer"
-						>
-							<option value="upcoming">Upcoming Games</option>
-							<option value="live">Live Games</option>
-						</select>
-
-						<select
-							value={leagueFilter}
-							onChange={(e) => setLeagueFilter(e.target.value)}
-							className="bg-gray-700 text-white px-4 py-2 rounded-lg cursor-pointer"
-						>
-							<option value="">All Leagues</option>
-							<option value="NBA">NBA</option>
-							<option value="NFL">NFL</option>
-							<option value="NHL">NHL</option>
-							<option value="MLB">MLB</option>
-							<option value="NCAAB">NCAAB</option>
-							<option value="NCAAF">NCAAF</option>
-						</select>
-					</div>
 				</div>
 
 				{/* Main Content */}
@@ -105,18 +77,9 @@ function Charts() {
 					)}
 
 					{!loading && !error && games.length > 0 && (
-						<div className="grid grid-cols-12 gap-6">
-							{/* Game List Sidebar */}
-							<div className="col-span-12 lg:col-span-3">
-								<GameListSidebar
-									games={games}
-									selectedGame={selectedGame}
-									onSelectGame={setSelectedGame}
-								/>
-							</div>
-
+						<div className="grid grid-cols-12 gap-4 lg:gap-6">
 							{/* Chart Area */}
-							<div className="col-span-12 lg:col-span-9">
+							<div className="col-span-12 lg:col-span-9 order-2 lg:order-1">
 								{selectedGame ? (
 									<GameLineChart game={selectedGame} />
 								) : (
@@ -124,6 +87,42 @@ function Charts() {
 										<p className="text-gray-400">Select a game to view line movements</p>
 									</div>
 								)}
+							</div>
+
+							{/* Sidebar Container - Filters + Game List */}
+							<div className="col-span-12 lg:col-span-3 order-1 lg:order-2">
+								{/* Filters */}
+								<div className="flex flex-col sm:flex-row lg:flex-col gap-4 mb-4">
+									<select
+										value={gameTimeFilter}
+										onChange={(e) => setGameTimeFilter(e.target.value)}
+										className="bg-gray-700 text-white px-4 py-2 rounded-lg cursor-pointer"
+									>
+										<option value="upcoming">Upcoming Games</option>
+										<option value="live">Live Games</option>
+									</select>
+
+									<select
+										value={leagueFilter}
+										onChange={(e) => setLeagueFilter(e.target.value)}
+										className="bg-gray-700 text-white px-4 py-2 rounded-lg cursor-pointer"
+									>
+										<option value="">All Leagues</option>
+										<option value="NBA">NBA</option>
+										<option value="NFL">NFL</option>
+										<option value="NHL">NHL</option>
+										<option value="MLB">MLB</option>
+										<option value="NCAAB">NCAAB</option>
+										<option value="NCAAF">NCAAF</option>
+									</select>
+								</div>
+
+								{/* Game List */}
+								<GameListSidebar
+									games={games}
+									selectedGame={selectedGame}
+									onSelectGame={setSelectedGame}
+								/>
 							</div>
 						</div>
 					)}

@@ -52,7 +52,7 @@ function GameLineChart({ game }: GameLineChartProps) {
 
 		const chart = createChart(chartContainerRef.current, {
 			width: chartContainerRef.current.clientWidth,
-			height: 500,
+			height: 400,
 			layout: {
 				background: { color: '#1f2937' },
 				textColor: '#d1d5db',
@@ -224,7 +224,7 @@ function GameLineChart({ game }: GameLineChartProps) {
 			<div ref={chartContainerRef} className="mb-4" />
 
 			{/* Current Lines by Sportsbook */}
-			<div className="grid grid-cols-3 gap-4">
+			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 				{selectedOutcome?.history_by_sportsbook &&
 					Object.entries(selectedOutcome.history_by_sportsbook).map(([sportsbook, history]) => {
 						const latestOdds = history[history.length - 1]?.odds || 0;
