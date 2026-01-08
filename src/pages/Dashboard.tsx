@@ -117,19 +117,7 @@ function Dashboard() {
 			<Sidebar />
 
 			{/* Main Content */}
-			<div className="ml-64 px-4 py-20 pt-24">
-				{/* Dashboard Header */}
-				<div className="max-w-7xl mx-auto mb-16">
-					<div className="flex items-center justify-between mb-6">
-						<h1 className="text-4xl font-bold">Arbitrage Opportunities</h1>
-						<div className="flex items-center gap-4">
-							<div className="text-right">
-								<p className="text-xs text-gray-400">Your Plan</p>
-								<p className="text-sm font-medium text-gray-200 capitalize">{userTier}</p>
-							</div>
-						</div>
-					</div>
-				</div>
+			<div className="md:ml-64 px-4 py-20 pt-24">
 
 				{/* Success Message */}
 				{successMessage && (
