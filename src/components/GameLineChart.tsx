@@ -224,7 +224,7 @@ function GameLineChart({ game }: GameLineChartProps) {
 			<div ref={chartContainerRef} className="mb-4" />
 
 			{/* Current Lines by Sportsbook */}
-			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+			<div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
 				{selectedOutcome?.history_by_sportsbook &&
 					Object.entries(selectedOutcome.history_by_sportsbook).map(([sportsbook, history]) => {
 						const latestOdds = history[history.length - 1]?.odds || 0;
@@ -233,14 +233,16 @@ function GameLineChart({ game }: GameLineChartProps) {
 								key={sportsbook}
 								className="bg-gray-700 rounded-lg p-4"
 							>
-								<div className="text-sm font-medium text-gray-300 mb-2">
-									{sportsbook}
+								<div className="flex items-center gap-2 mb-2">
+									<div className="text-sm font-medium text-gray-300">
+										{sportsbook}
+									</div>
+									<span className="text-xs bg-gray-600 text-gray-400 px-2 py-0.5 rounded-full">
+										{history.length}
+									</span>
 								</div>
 								<div className="text-2xl font-bold text-white">
 									{latestOdds > 0 ? '+' : ''}{latestOdds}
-								</div>
-								<div className="text-xs text-gray-500 mt-1">
-									{history.length} data points
 								</div>
 							</div>
 						);
