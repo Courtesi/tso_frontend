@@ -18,7 +18,9 @@ function Charts() {
 		leagueFilter,
 		setLeagueFilter,
 		gameTimeFilter,
-		setGameTimeFilter
+		setGameTimeFilter,
+		sportsbookFilter,
+		setSportsbookFilter
 	} = useData();
 	const navigate = useNavigate();
 
@@ -76,15 +78,22 @@ function Charts() {
 						</div>
 					)}
 
-					{!loading && !error && games.length > 0 && (
+					{!loading && !error && (
 						<div className="grid grid-cols-12 gap-4 lg:gap-6">
 							{/* Chart Area */}
 							<div className="col-span-12 lg:col-span-9 order-2 lg:order-1">
-								{selectedGame ? (
+								{games.length > 0 && selectedGame ? (
 									<GameLineChart game={selectedGame} />
-								) : (
+								) : games.length > 0 ? (
 									<div className="bg-gray-800 rounded-lg p-12 text-center">
 										<p className="text-gray-400">Select a game to view line movements</p>
+									</div>
+								) : (
+									<div className="bg-gradient-to-br from-indigo-400/40 via-indigo-500/30 to-indigo-400/30 backdrop-blur-md border border-indigo-500/10 shadow-xl rounded-lg p-12 text-center">
+										<p className="text-gray-300 text-lg">No games available for the selected filters.</p>
+										<p className="text-gray-400 text-sm mt-2">
+											Try changing the league or game time filters, or check back later.
+										</p>
 									</div>
 								)}
 							</div>
@@ -115,6 +124,39 @@ function Charts() {
 										<option value="NCAAB">NCAAB</option>
 										<option value="NCAAF">NCAAF</option>
 									</select>
+
+									<div className="bg-gray-700 rounded-lg p-3">
+										<div className="flex items-center justify-between mb-2">
+											<label className="text-sm text-gray-400">Sportsbooks</label>
+											{sportsbookFilter.length > 0 && (
+												<button
+													onClick={() => setSportsbookFilter([])}
+													className="text-xs text-indigo-400 hover:text-indigo-300 underline"
+												>
+													Clear all
+												</button>
+											)}
+										</div>
+										<div className="space-y-1 max-h-48 overflow-y-auto">
+											{['draftkings', 'fanduel', 'betmgm', 'caesars', 'fliff', 'novig', 'prophetx'].map(sb => (
+												<label key={sb} className="flex items-center gap-2 cursor-pointer hover:bg-gray-600 px-2 py-1 rounded">
+													<input
+														type="checkbox"
+														checked={sportsbookFilter.includes(sb)}
+														onChange={(e) => {
+															if (e.target.checked) {
+																setSportsbookFilter([...sportsbookFilter, sb]);
+															} else {
+																setSportsbookFilter(sportsbookFilter.filter(s => s !== sb));
+															}
+														}}
+														className="w-4 h-4 text-indigo-600 bg-gray-800 border-gray-600 rounded focus:ring-indigo-500"
+													/>
+													<span className="text-sm text-white capitalize">{sb}</span>
+												</label>
+											))}
+										</div>
+									</div>
 								</div>
 
 								{/* Game List */}
@@ -124,15 +166,6 @@ function Charts() {
 									onSelectGame={setSelectedGame}
 								/>
 							</div>
-						</div>
-					)}
-
-					{!loading && !error && games.length === 0 && (
-						<div className="bg-gradient-to-br from-indigo-400/40 via-indigo-500/30 to-indigo-400/30 backdrop-blur-md border border-indigo-500/10 shadow-xl rounded-lg p-12 text-center">
-							<p className="text-gray-300 text-lg">No games available for the selected filters.</p>
-							<p className="text-gray-400 text-sm mt-2">
-								Try changing the league or game time filters, or check back later.
-							</p>
 						</div>
 					)}
 				</div>

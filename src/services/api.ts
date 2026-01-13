@@ -94,7 +94,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 class ApiService {
-	private async publicRequest<T = any>(
+	private async publicRequest<T = unknown>(
 		endpoint: string,
 		options: RequestInit = {}
 	): Promise<T> {
@@ -119,7 +119,7 @@ class ApiService {
 		return handleResponse<T>(response);
 	}
 
-	private async protectedRequest<T = any>(
+	private async protectedRequest<T = unknown>(
 		endpoint: string,
 		options: RequestInit = {}
 	): Promise<T> {
@@ -188,135 +188,11 @@ class ApiService {
 		});
 	}
 
-	// ==================== SSE STREAMING ====================
-
-	streamArbs(onMessage: (data: Arbs) => void, onError: (error: Error) => void): () => void {
-		const currentUser = auth.currentUser;
-
-		if (!currentUser) {
-			onError(new Error('No authenticated user found. Please log in.'));
-			return () => {};
-		}
-
-		let eventSource: EventSource | null = null;
-		let isCleaningUp = false;
-
-		const connect = async () => {
-			if (isCleaningUp) return;
-
-			try {
-				// Get fresh token
-				const token = await currentUser.getIdToken();
-
-				// Create EventSource with token as query parameter
-				const url = `${API_URL}/api/data/arbs/stream?token=${token}`;
-				eventSource = new EventSource(url);
-
-				eventSource.onmessage = (event) => {
-					try {
-						const data = JSON.parse(event.data);
-						onMessage(data);
-					} catch (err) {
-						console.error('Failed to parse SSE message:', err);
-					}
-				};
-
-				eventSource.onerror = (error) => {
-					console.error('SSE connection error:', error);
-					eventSource?.close();
-
-					if (!isCleaningUp) {
-						// Reconnect after 5 seconds
-						setTimeout(connect, 5000);
-					}
-
-					onError(new Error('SSE connection failed'));
-				};
-			} catch (err) {
-				onError(err instanceof Error ? err : new Error('Failed to connect'));
-			}
-		};
-
-		connect();
-
-		// Return cleanup function
-		return () => {
-			isCleaningUp = true;
-			if (eventSource) {
-				eventSource.close();
-				eventSource = null;
-			}
-		};
-	}
+	// ==================== STREAMING ====================
+	// NOTE: SSE streaming methods (streamArbs, streamTerminal) have been removed.
+	// Real-time streaming now uses WebSocket via the wsService in websocket.ts
 
 	// ==================== TERMINAL ENDPOINTS ====================
-
-	streamTerminal(
-		onMessage: (data: TerminalResponse) => void,
-		onError: (error: Error) => void,
-		league?: string,
-		gameTime?: string
-	): () => void {
-		const currentUser = auth.currentUser;
-
-		if (!currentUser) {
-			onError(new Error('No authenticated user found. Please log in.'));
-			return () => {};
-		}
-
-		let eventSource: EventSource | null = null;
-		let isCleaningUp = false;
-
-		const connect = async () => {
-			if (isCleaningUp) return;
-
-			try {
-				// Get fresh token
-				const token = await currentUser.getIdToken();
-
-				// Build URL with filters
-				let url = `${API_URL}/api/data/terminal/stream?token=${token}`;
-				if (league) url += `&league=${league}`;
-				if (gameTime) url += `&game_time=${gameTime}`;
-
-				eventSource = new EventSource(url);
-
-				eventSource.onmessage = (event) => {
-					try {
-						const data = JSON.parse(event.data);
-						onMessage(data);
-					} catch (err) {
-						console.error('Failed to parse terminal SSE message:', err);
-					}
-				};
-
-				eventSource.onerror = (error) => {
-					console.error('Terminal SSE connection error:', error);
-					eventSource?.close();
-
-					if (!isCleaningUp) {
-						// Reconnect after 5 seconds
-						setTimeout(connect, 5000);
-					}
-
-					onError(new Error('Terminal SSE connection failed'));
-				};
-			} catch (err) {
-				onError(err instanceof Error ? err : new Error('Failed to connect'));
-			}
-		};
-
-		connect();
-
-		// Return cleanup function
-		return () => {
-			isCleaningUp = true;
-			if (eventSource) {
-				eventSource.close();
-				eventSource = null;
-			}
-		};
-	}
 
 	async getTerminalData(league?: string, gameTime?: string): Promise<TerminalResponse> {
 		let url = '/api/data/terminal';

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { createChart, type IChartApi, type ISeriesApi, type LineData, LineSeries} from 'lightweight-charts';
 import { type GameTerminalData, type OutcomeLine } from '../services/api';
 
@@ -14,11 +14,33 @@ function GameLineChart({ game }: GameLineChartProps) {
 	// Get moneyline market (should only be one)
 	const moneylineMarket = game.markets.find(m => m.market_type === 'MONEY');
 
-	// Memoize outcomes to prevent new array creation on every render
-	const outcomes = useMemo(
-		() => moneylineMarket?.outcomes || [],
-		[moneylineMarket?.outcomes]
-	);
+	// Helper function to determine if outcome is home or away team
+	const getTeamType = useCallback((outcome: OutcomeLine): 'home' | 'away' | null => {
+		// Parse team name from outcome_id (e.g., "lakers_ml" -> "lakers")
+		const parsedTeam = outcome.outcome_id.split('_')[0].toLowerCase();
+		const homeTeam = game.home_team.toLowerCase().replace(/\s+/g, '');
+		const awayTeam = game.away_team.toLowerCase().replace(/\s+/g, '');
+
+		if (parsedTeam.includes(homeTeam) || homeTeam.includes(parsedTeam)) {
+			return 'home';
+		} else if (parsedTeam.includes(awayTeam) || awayTeam.includes(parsedTeam)) {
+			return 'away';
+		}
+		return null;
+	}, [game.home_team, game.away_team]);
+
+	// Memoize outcomes with team type enrichment
+	const outcomes = useMemo(() => {
+		const baseOutcomes = moneylineMarket?.outcomes || [];
+		// Sort outcomes to show home team first
+		return baseOutcomes.sort((a, b) => {
+			const aType = getTeamType(a);
+			const bType = getTeamType(b);
+			if (aType === 'home' && bType === 'away') return -1;
+			if (aType === 'away' && bType === 'home') return 1;
+			return 0;
+		});
+	}, [moneylineMarket?.outcomes, getTeamType]);
 
 	// State for selected team/outcome
 	const [selectedOutcome, setSelectedOutcome] = useState<OutcomeLine | null>(
@@ -197,7 +219,7 @@ function GameLineChart({ game }: GameLineChartProps) {
 		<div className="bg-gray-800 rounded-lg p-6">
 			{/* Header */}
 			<div className="mb-4">
-				<h2 className="text-2xl font-bold">{game.matchup.replace(/_/g, ' ')}</h2>
+				<h2 className="text-2xl font-bold">{game.away_team.replace(/_/g, ' ')} @ {game.home_team.replace(/_/g, ' ')}</h2>
 				<p className="text-gray-400 text-sm">
 					{new Date(game.start_time).toLocaleString()} • {game.league}
 				</p>
@@ -205,19 +227,28 @@ function GameLineChart({ game }: GameLineChartProps) {
 
 			{/* Team Tabs */}
 			<div className="flex gap-2 mb-4">
-				{outcomes.map((outcome) => (
-					<button
-						key={outcome.outcome_id}
-						onClick={() => setSelectedOutcome(outcome)}
-						className={`px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer ${
-							selectedOutcome?.outcome_id === outcome.outcome_id
-								? 'bg-indigo-600 text-white'
-								: 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-						}`}
-					>
-						{outcome.outcome_name.replace(/_/g, ' ')}
-					</button>
-				))}
+				{outcomes.map((outcome) => {
+					const teamType = getTeamType(outcome);
+					const displayLabel = teamType === 'home'
+						? `Home (${game.home_team.replace(/_/g, ' ')})`
+						: teamType === 'away'
+						? `Away (${game.away_team.replace(/_/g, ' ')})`
+						: outcome.outcome_name.replace(/_/g, ' ');
+
+					return (
+						<button
+							key={outcome.outcome_id}
+							onClick={() => setSelectedOutcome(outcome)}
+							className={`px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer ${
+								selectedOutcome?.outcome_id === outcome.outcome_id
+									? 'bg-indigo-600 text-white'
+									: 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+							}`}
+						>
+							{displayLabel}
+						</button>
+					);
+				})}
 			</div>
 
 			{/* Chart */}

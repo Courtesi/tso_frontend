@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useEffect, type ReactNode, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { api, type GameTerminalData } from '../services/api';
+import type { GameTerminalData } from '../services/api';
+import { wsService, type ConnectionStatus, type FilterOptions } from '../services/websocket';
 
 interface BetSide {
 	team: string;
@@ -41,12 +42,17 @@ interface DataContextType {
 	setLeagueFilter: (league: string) => void;
 	gameTimeFilter: string;
 	setGameTimeFilter: (gameTime: string) => void;
+	sportsbookFilter: string[];
+	setSportsbookFilter: (sportsbooks: string[]) => void;
+
+	// WebSocket connection status
+	connectionStatus: ConnectionStatus;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
-	const { currentUser, userTier } = useAuth();
+	const { currentUser } = useAuth();
 	const location = useLocation();
 
 	// Determine which data streams should be active based on current route
@@ -57,155 +63,164 @@ export function DataProvider({ children }: { children: ReactNode }) {
 	const [arbData, setArbData] = useState<ArbitrageBet[]>([]);
 	const [arbLoading, setArbLoading] = useState(false);
 	const [arbError, setArbError] = useState('');
-	const [useArbSSE, setUseArbSSE] = useState(true);
 
 	// Charts state
 	const [chartsData, setChartsData] = useState<GameTerminalData[]>([]);
 	const [chartsLoading, setChartsLoading] = useState(false);
 	const [chartsError, setChartsError] = useState('');
 	const [selectedGame, setSelectedGame] = useState<GameTerminalData | null>(null);
+
+	// Filters
 	const [leagueFilter, setLeagueFilter] = useState<string>('');
 	const [gameTimeFilter, setGameTimeFilter] = useState<string>('upcoming');
-	const [useChartsSSE, setUseChartsSSE] = useState(true);
+	const [sportsbookFilter, setSportsbookFilter] = useState<string[]>([]);
 
-	const currentFiltersRef = useRef({ league: leagueFilter, gameTime: gameTimeFilter });
+	// WebSocket connection status
+	const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
 
+	// Cache terminal data per filter combination for instant filter switching
+	const [cachedChartsData, setCachedChartsData] = useState<Map<string, {
+		data: GameTerminalData[];
+		timestamp: number;
+	}>>(new Map());
+	const CACHE_TTL = 30000; // 30 seconds
+
+	// WebSocket connection management
 	useEffect(() => {
-		currentFiltersRef.current = { league: leagueFilter, gameTime: gameTimeFilter };
-	}, [leagueFilter, gameTimeFilter]);
+		if (!currentUser) return;
 
-	// Fetch arbitrage data (only when on /dashboard)
-	useEffect(() => {
-		if (!currentUser || !shouldFetchArbs) return;
-
-		if (useArbSSE) {
-			// Only show loading if we don't have cached data
-			if (arbData.length === 0) {
-				setArbLoading(true);
+		// Connect to WebSocket once
+		const connectWebSocket = async () => {
+			try {
+				const token = await currentUser.getIdToken();
+				await wsService.connect(token);
+			} catch (error) {
+				console.error('Failed to connect WebSocket:', error);
 			}
-			setArbError('');
+		};
 
-			const cleanup = api.streamArbs(
-				(data) => {
-					setArbData(data.data);
-					setArbError('');
-					setArbLoading(false);
-				},
-				(err) => {
-					console.error('SSE failed, falling back to polling:', err);
-					setUseArbSSE(false);
-				}
-			);
+		connectWebSocket();
 
-			return cleanup;
-		} else {
-			const fetchData = async (isInitial = false) => {
-				// Only show loading if we don't have cached data
-				if (isInitial && arbData.length === 0) setArbLoading(true);
-				setArbError('');
+		// Subscribe to connection status updates
+		const unsubscribe = wsService.onStatusChange(setConnectionStatus);
 
-				try {
-					const response = await api.getArbs();
-					setArbData(response.data);
-				} catch (err: any) {
-					console.error('Error fetching arbs:', err);
-					setArbError(err.message || 'Failed to load data');
-				} finally {
-					if (isInitial) setArbLoading(false);
-				}
-			};
+		// Cleanup on unmount or user change
+		return () => {
+			unsubscribe();
+			wsService.disconnect();
+		};
+	}, [currentUser]);
 
-			fetchData(true);
-
-			const pollInterval = userTier === 'premium' ? 5000 : 60000;
-			const intervalId = setInterval(() => fetchData(false), pollInterval);
-
-			return () => clearInterval(intervalId);
-		}
-	}, [currentUser, userTier, useArbSSE, shouldFetchArbs]);
-
-	// Fetch charts data (only when on /charts)
+	// Subscribe to arbitrage stream when on /dashboard
 	useEffect(() => {
-		if (!currentUser || !shouldFetchCharts) return;
+		if (!currentUser || !shouldFetchArbs || connectionStatus !== 'connected') return;
 
-		const effectFilters = { league: leagueFilter, gameTime: gameTimeFilter };
+		console.log('Subscribing to arbs stream');
+		setArbLoading(true);
+		setArbError('');
 
-		if (useChartsSSE) {
-			// Only show loading if we don't have cached data
+		const filters: FilterOptions = {
+			sportsbooks: sportsbookFilter.length > 0 ? sportsbookFilter : null
+		};
+
+		wsService.subscribe('arbs', filters, (data) => {
+			setArbData(data.data);
+			setArbError('');
+			setArbLoading(false);
+		});
+
+		// Cleanup on unmount or when leaving dashboard
+		return () => {
+			console.log('Unsubscribing from arbs stream');
+			wsService.unsubscribe('arbs');
+		};
+		// sportsbookFilter is intentionally omitted - filter updates are handled by the updateFilters effect below
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [currentUser, shouldFetchArbs, connectionStatus]);
+
+	// Subscribe to terminal stream when on /charts
+	useEffect(() => {
+		if (!currentUser || !shouldFetchCharts || connectionStatus !== 'connected') return;
+
+		console.log('Subscribing to terminal stream with filters:', {
+			league: leagueFilter,
+			game_time: gameTimeFilter,
+			sportsbooks: sportsbookFilter
+		});
+
+		// Check cache and show immediately if available and fresh
+		const cacheKey = `${leagueFilter || 'all'}:${gameTimeFilter || 'all'}:${sportsbookFilter.join(',')}`;
+		const cached = cachedChartsData.get(cacheKey);
+
+		if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
+			// Show cached data instantly
+			setChartsData(cached.data);
+			setChartsLoading(false);
+		} else {
+			// No cache or stale - show loading
 			if (chartsData.length === 0) {
 				setChartsLoading(true);
 			}
-			setChartsError('');
-
-			const cleanup = api.streamTerminal(
-				(data) => {
-					if (currentFiltersRef.current.league !== effectFilters.league ||
-						currentFiltersRef.current.gameTime !== effectFilters.gameTime) {
-						return;
-					}
-
-					setChartsData(data.data);
-					setChartsError('');
-					setChartsLoading(false);
-
-					setSelectedGame(prevSelected => {
-						if (!prevSelected) {
-							return data.data.length > 0 ? data.data[0] : null;
-						}
-
-						const updatedGame = data.data.find(g => g.event_id === prevSelected.event_id);
-						return updatedGame || data.data[0] || prevSelected;
-					});
-				},
-				(err) => {
-					console.error('SSE failed, falling back to polling:', err);
-					setUseChartsSSE(false);
-				},
-				leagueFilter,
-				gameTimeFilter
-			);
-
-			return cleanup;
-		} else {
-			const fetchData = async (isInitial = false) => {
-				// Only show loading if we don't have cached data
-				if (isInitial && chartsData.length === 0) setChartsLoading(true);
-				setChartsError('');
-
-				try {
-					const response = await api.getTerminalData(leagueFilter, gameTimeFilter);
-
-					if (currentFiltersRef.current.league !== effectFilters.league ||
-						currentFiltersRef.current.gameTime !== effectFilters.gameTime) {
-						return;
-					}
-
-					setChartsData(response.data);
-
-					setSelectedGame(prevSelected => {
-						if (!prevSelected) {
-							return response.data.length > 0 ? response.data[0] : null;
-						}
-
-						const updatedGame = response.data.find(g => g.event_id === prevSelected.event_id);
-						return updatedGame || response.data[0] || prevSelected;
-					});
-				} catch (err: any) {
-					console.error('Error fetching terminal data:', err);
-					setChartsError(err.message || 'Failed to load terminal data');
-				} finally {
-					if (isInitial) setChartsLoading(false);
-				}
-			};
-
-			fetchData(true);
-
-			const pollInterval = userTier === 'premium' ? 5000 : 60000;
-			const intervalId = setInterval(() => fetchData(false), pollInterval);
-
-			return () => clearInterval(intervalId);
 		}
-	}, [currentUser, userTier, useChartsSSE, leagueFilter, gameTimeFilter, shouldFetchCharts]);
+
+		setChartsError('');
+
+		const filters: FilterOptions = {
+			league: leagueFilter || null,
+			game_time: gameTimeFilter || null,
+			sportsbooks: sportsbookFilter.length > 0 ? sportsbookFilter : null
+		};
+
+		wsService.subscribe('terminal', filters, (data) => {
+			setChartsData(data.data);
+			setChartsError('');
+			setChartsLoading(false);
+
+			// Cache the received data for instant filter switching
+			const cacheKey = `${leagueFilter || 'all'}:${gameTimeFilter || 'all'}:${sportsbookFilter.join(',')}`;
+			setCachedChartsData(prev => {
+				const newCache = new Map(prev);
+				newCache.set(cacheKey, {
+					data: data.data,
+					timestamp: Date.now()
+				});
+				return newCache;
+			});
+
+			setSelectedGame(prevSelected => {
+				if (!prevSelected) {
+					return data.data.length > 0 ? data.data[0] : null;
+				}
+
+				const updatedGame = data.data.find((g: GameTerminalData) => g.event_id === prevSelected.event_id);
+				return updatedGame || data.data[0] || prevSelected;
+			});
+		});
+
+		// Cleanup on unmount or when leaving charts
+		return () => {
+			console.log('Unsubscribing from terminal stream');
+			wsService.unsubscribe('terminal');
+		};
+		// Filter values and cache are intentionally omitted - filter updates are handled by the updateFilters effect below
+		// cachedChartsData and chartsData.length are only read on initial subscription, not tracked for changes
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [currentUser, shouldFetchCharts, connectionStatus]);
+
+	// Update filters dynamically when they change (NO reconnection needed)
+	useEffect(() => {
+		if (connectionStatus !== 'connected') return;
+
+		const filters: FilterOptions = {
+			league: leagueFilter || null,
+			game_time: gameTimeFilter || null,
+			sportsbooks: sportsbookFilter.length > 0 ? sportsbookFilter : null
+		};
+
+		console.log('Updating WebSocket filters:', filters);
+		wsService.updateFilters(filters);
+
+	}, [leagueFilter, gameTimeFilter, sportsbookFilter, connectionStatus]);
 
 	const value = {
 		arbData,
@@ -220,11 +235,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		setLeagueFilter,
 		gameTimeFilter,
 		setGameTimeFilter,
+		sportsbookFilter,
+		setSportsbookFilter,
+		connectionStatus,
 	};
 
 	return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
 
+// Exporting custom hook alongside component is standard React context pattern
+// eslint-disable-next-line react-refresh/only-export-components
 export function useData() {
 	const context = useContext(DataContext);
 	if (context === undefined) {

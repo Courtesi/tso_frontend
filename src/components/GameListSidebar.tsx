@@ -36,7 +36,7 @@ function GameListSidebar({ games, selectedGame, onSelectGame }: GameListSidebarP
 										: 'bg-gray-700 hover:bg-gray-600 text-gray-200'
 								}`}
 							>
-								<div className="text-sm font-medium">{game.matchup.replace(/_/g, ' ')}</div>
+								<div className="text-sm font-medium">{game.away_team.replace(/_/g, ' ')} @ {game.home_team.replace(/_/g, ' ')}</div>
 								<div className="text-xs opacity-75 mt-1">{game.league} | {gameTime}</div>
 								{game.game_status === 'live' && (
 									<div className="text-xs text-red-400 font-bold mt-1">LIVE</div>
