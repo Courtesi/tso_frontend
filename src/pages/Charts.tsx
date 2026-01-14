@@ -7,6 +7,10 @@ import Sidebar from '../components/Sidebar';
 import GameLineChart from '../components/GameLineChart';
 import GameListSidebar from '../components/GameListSidebar';
 
+// Leagues available to free tier users
+const FREE_TIER_LEAGUES = ['NBA', 'NFL', 'MLB'];
+const ALL_LEAGUES = ['NBA', 'NFL', 'NHL', 'MLB', 'NCAAB', 'NCAAF'];
+
 function Charts() {
 	const { currentUser, userTier, loading: authLoading } = useAuth();
 	const {
@@ -54,11 +58,11 @@ function Charts() {
 					{userTier === 'free' && (
 						<div className="bg-yellow-900 bg-opacity-50 border border-yellow-500 rounded-lg p-4 mb-6">
 							<p className="text-yellow-200 text-sm">
-								Free tier: Viewing up to 10 games, updates every 60 seconds.{' '}
+								Free tier: NBA/NFL/MLB only, up to 10 games.{' '}
 								<a href="/pricing" className="underline font-semibold">
 									Upgrade to Premium
 								</a>{' '}
-								for unlimited games and real-time updates.
+								for all leagues, unlimited games, and real-time updates.
 							</p>
 						</div>
 					)}
@@ -113,16 +117,30 @@ function Charts() {
 
 									<select
 										value={leagueFilter}
-										onChange={(e) => setLeagueFilter(e.target.value)}
+										onChange={(e) => {
+											const value = e.target.value;
+											// Prevent selecting locked leagues for free users
+											if (userTier === 'free' && value && !FREE_TIER_LEAGUES.includes(value)) {
+												return;
+											}
+											setLeagueFilter(value);
+										}}
 										className="bg-gray-700 text-white px-4 py-2 rounded-lg cursor-pointer"
 									>
 										<option value="">All Leagues</option>
-										<option value="NBA">NBA</option>
-										<option value="NFL">NFL</option>
-										<option value="NHL">NHL</option>
-										<option value="MLB">MLB</option>
-										<option value="NCAAB">NCAAB</option>
-										<option value="NCAAF">NCAAF</option>
+										{ALL_LEAGUES.map(league => {
+											const isLocked = userTier === 'free' && !FREE_TIER_LEAGUES.includes(league);
+											return (
+												<option
+													key={league}
+													value={league}
+													disabled={isLocked}
+													className={isLocked ? 'text-gray-500' : ''}
+												>
+													{league}{isLocked ? ' (Premium)' : ''}
+												</option>
+											);
+										})}
 									</select>
 
 									<div className="bg-gray-700 rounded-lg p-3">

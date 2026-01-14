@@ -137,15 +137,16 @@ function Subscription() {
 			// Redirect to the Stripe Customer Portal
 			// Note: We don't set loading to false because we're redirecting away
 			window.location.assign(url);
-		} catch (err: any) {
+		} catch (err: unknown) {
 			console.error('Error creating portal session:', err);
 
 			let errorMessage = 'Failed to open customer portal. ';
+			const message = err instanceof Error ? err.message : '';
 
-			if (err.message.includes('No Stripe customer found')) {
+			if (message.includes('No Stripe customer found')) {
 				errorMessage += 'No subscription found. Please subscribe first.';
-			} else if (err.message) {
-				errorMessage += err.message;
+			} else if (message) {
+				errorMessage += message;
 			} else {
 				errorMessage += 'Please try again or contact support.';
 			}
@@ -268,7 +269,7 @@ function Subscription() {
 										className="inline-block w-8 h-8 mr-2"
 										src={"/checkmark.png"}
 									/>
-									Odds charts (coming soon)
+									Odds charts (Available leagues)
 								</li>
 								<li className="text-gray-200">
 									<img
