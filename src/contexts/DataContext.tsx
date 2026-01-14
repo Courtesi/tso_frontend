@@ -124,7 +124,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		};
 
 		wsService.subscribe('arbs', filters, (data) => {
-			setArbData(data.data);
+			setArbData(data.data as ArbitrageBet[]);
 			setArbError('');
 			setArbLoading(false);
 		});
@@ -172,7 +172,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		};
 
 		wsService.subscribe('terminal', filters, (data) => {
-			setChartsData(data.data);
+			const terminalData = data.data as GameTerminalData[];
+			setChartsData(terminalData);
 			setChartsError('');
 			setChartsLoading(false);
 
@@ -181,7 +182,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 			setCachedChartsData(prev => {
 				const newCache = new Map(prev);
 				newCache.set(cacheKey, {
-					data: data.data,
+					data: terminalData,
 					timestamp: Date.now()
 				});
 				return newCache;
@@ -189,11 +190,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
 			setSelectedGame(prevSelected => {
 				if (!prevSelected) {
-					return data.data.length > 0 ? data.data[0] : null;
+					return terminalData.length > 0 ? terminalData[0] : null;
 				}
 
-				const updatedGame = data.data.find((g: GameTerminalData) => g.event_id === prevSelected.event_id);
-				return updatedGame || data.data[0] || prevSelected;
+				const updatedGame = terminalData.find((g: GameTerminalData) => g.event_id === prevSelected.event_id);
+				return updatedGame || terminalData[0] || prevSelected;
 			});
 		});
 
