@@ -211,7 +211,7 @@ function Dashboard() {
 
 															{/* Game (spans 2 rows) */}
 															<td rowSpan={2} className="px-2 py-1 border-r border-indigo-400/10">
-																<div className="text-sm font-medium text-white">{bet.matchup} - {bet.league}</div>
+																<div className="text-sm font-medium text-white">{bet.matchup.replace(/_/g, ' ')} - {bet.league}</div>
 																<div className="text-xs text-gray-400 mt-1">{gameTime}</div>
 															</td>
 
@@ -225,7 +225,7 @@ function Dashboard() {
 															{/* Bet 1 */}
 															<td className="px-2 py-1">
 																<div className="text-sm text-white font-medium">
-																	{bet.bet1.team}
+																	{bet.bet1.team.replace(/_/g, ' ')}
 																	<span className="ml-2 px-2 py-0.5 text-xs text-gray-300">
 																		{bet.bet1.odds}
 																	</span>
@@ -264,7 +264,7 @@ function Dashboard() {
 															{/* Bet 2 */}
 															<td className="px-2 py-1">
 																<div className="text-sm text-white font-medium">
-																	{bet.bet2.team}
+																	{bet.bet2.team.replace(/_/g, ' ')}
 																	<span className="ml-2 px-2 py-0.5 text-xs text-gray-300">
 																		{bet.bet2.odds}
 																	</span>
