@@ -156,7 +156,7 @@ function Charts() {
 											)}
 										</div>
 										<div className="space-y-1 max-h-48 overflow-y-auto">
-											{['draftkings', 'fanduel', 'betmgm', 'caesars', 'fliff', 'novig', 'prophetx'].map(sb => (
+											{['draftkings', 'fanduel', 'betmgm', 'caesars', 'fliff', 'novig', 'prophetx', 'kalshi'].map(sb => (
 												<label key={sb} className="flex items-center gap-2 cursor-pointer hover:bg-gray-600 px-2 py-1 rounded">
 													<input
 														type="checkbox"

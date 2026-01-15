@@ -119,6 +119,7 @@ function GameLineChart({ game }: GameLineChartProps) {
 			'Ballybet': '#a855f7',     // Purple
 			'ESPN BET': '#ef4444',     // Red
 			'Fanatics': '#0ea5e9',     // Sky blue
+			'Kalshi': '#00d26a',       // Kalshi green
 		};
 
 		// Return mapped color or generate consistent hash-based color

@@ -68,6 +68,7 @@ function Dashboard() {
 			'sportzino': 'sportzino.jfif',
 			'thescore': 'thescore.png',
 			'unibet': 'unibet.png',
+			'kalshi': 'kalshi.png',
 		};
 		return iconMap[normalized] ? `/sportsbook_icons/${iconMap[normalized]}` : null;
 	};
