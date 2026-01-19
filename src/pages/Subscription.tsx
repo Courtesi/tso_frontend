@@ -8,7 +8,10 @@ import AuthModal from '../components/AuthModal';
 import Footer from '../components/Footer';
 import { collection, addDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { api } from '../services/api';
+import { api, type TierInfo } from '../services/api';
+
+// Cache tier features at module level to avoid refetching
+let tierFeaturesCache: Record<string, TierInfo> | null = null;
 
 function Subscription() {
 	const { currentUser, userTier } = useAuth();
@@ -17,10 +20,25 @@ function Subscription() {
 	const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 	const [checkoutLoading, setCheckoutLoading] = useState(false);
 	const [portalLoading, setPortalLoading] = useState(false);
+	const [tierFeatures, setTierFeatures] = useState<Record<string, TierInfo>>(tierFeaturesCache || {});
 
 	useEffect(() => {
 		fetchProducts();
 	}, [fetchProducts]);
+
+	// Fetch tier features config on mount
+	useEffect(() => {
+		if (tierFeaturesCache) return;
+
+		api.getTierFeatures()
+			.then(response => {
+				tierFeaturesCache = response.tiers;
+				setTierFeatures(response.tiers);
+			})
+			.catch(err => {
+				console.error('Failed to fetch tier features:', err);
+			});
+	}, []);
 
 	const particlesOptions = useMemo(() => ({
 		background: {
@@ -229,10 +247,14 @@ function Subscription() {
 						{/* Free Tier */}
 						<div className="bg-slate-900 backdrop-blur-md border border-gray-500/20 shadow-xl rounded-xl p-8">
 							<div className="text-left mb-8">
-								<h3 className="capitalize text-3xl font-bold text-white mb-2">Free</h3>
-								<p className="text-gray-200 text-sm">Use Trueshot's basic features</p>
+								<h3 className="capitalize text-3xl font-bold text-white mb-2">
+									{tierFeatures.free?.name || 'Free'}
+								</h3>
+								<p className="text-gray-200 text-sm">
+									{tierFeatures.free?.description || "Use Trueshot's basic features"}
+								</p>
 								<div className="text-4xl font-bold text-gray-100 mt-4">
-									$0
+									{tierFeatures.free?.price || '$0'}
 								</div>
 							</div>
 							{currentUser && userTier === 'free' ? (
@@ -264,28 +286,19 @@ function Subscription() {
 							)}
 
 							<ul className="space-y-3 mt-8 justify-start text-sm">
-								<li className="text-gray-200">
-									<img
-										className="inline-block w-8 h-8 mr-2"
-										src={"/checkmark.png"}
-									/>
-									Odds charts (Available leagues)
-								</li>
-								<li className="text-gray-200">
-									<img
-										className="inline-block w-8 h-8 mr-2"
-										src={"/checkmark.png"}
-									/>
-									Access to 5 arbitrage bets at a time
-								</li>
-								<li className="text-gray-200">
-									<img
-										className="inline-block w-8 h-8 mr-2"
-										src={"/checkmark.png"}
-									/>
-									Finds bets every 60 seconds
-								</li>
-								
+								{(tierFeatures.free?.features || [
+									"Odds charts (Available leagues)",
+									"Access to 5 arbitrage bets at a time",
+									"Finds bets every 60 seconds",
+								]).map((feature, index) => (
+									<li key={index} className="text-gray-200">
+										<img
+											className="inline-block w-8 h-8 mr-2"
+											src={"/checkmark.png"}
+										/>
+										{feature}
+									</li>
+								))}
 							</ul>
 
 						</div>
@@ -338,22 +351,20 @@ function Subscription() {
 
 									<ul className="space-y-3 mt-8 justify-start text-sm">
 										<li className="text-white font-medium">
-											Everything in Free, and:
+											{tierFeatures.premium?.features_intro || 'Everything in Free, and:'}
 										</li>
-										<li className="text-white font-medium">
-											<img
-												className="inline-block w-8 h-8 mr-2"
-												src={"/checkmark.png"}
-											/>
-											Access to unlimited arbitrage bets
-										</li>
-										<li className="text-white font-medium">
-											<img
-												className="inline-block w-8 h-8 mr-2"
-												src={"/checkmark.png"}
-											/>
-											Real time updates on bets
-										</li>
+										{(tierFeatures.premium?.features || [
+											"Access to unlimited arbitrage bets",
+											"Real time updates on bets",
+										]).map((feature, index) => (
+											<li key={index} className="text-white font-medium">
+												<img
+													className="inline-block w-8 h-8 mr-2"
+													src={"/checkmark.png"}
+												/>
+												{feature}
+											</li>
+										))}
 									</ul>
 
 								</div>

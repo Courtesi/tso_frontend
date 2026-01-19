@@ -45,6 +45,16 @@ interface DataContextType {
 	sportsbookFilter: string[];
 	setSportsbookFilter: (sportsbooks: string[]) => void;
 
+	// Arb-specific filters
+	arbLeagueFilter: string;
+	setArbLeagueFilter: (league: string) => void;
+	arbMinProfitFilter: number | null;
+	setArbMinProfitFilter: (minProfit: number | null) => void;
+	arbMarketTypeFilter: string[];
+	setArbMarketTypeFilter: (marketTypes: string[]) => void;
+	arbSportsbookFilter: string[];
+	setArbSportsbookFilter: (sportsbooks: string[]) => void;
+
 	// WebSocket connection status
 	connectionStatus: ConnectionStatus;
 }
@@ -70,10 +80,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
 	const [chartsError, setChartsError] = useState('');
 	const [selectedGame, setSelectedGame] = useState<GameTerminalData | null>(null);
 
-	// Filters
+	// Filters for charts
 	const [leagueFilter, setLeagueFilter] = useState<string>('');
 	const [gameTimeFilter, setGameTimeFilter] = useState<string>('upcoming');
 	const [sportsbookFilter, setSportsbookFilter] = useState<string[]>([]);
+
+	// Arb-specific filters
+	const [arbLeagueFilter, setArbLeagueFilter] = useState<string>('');
+	const [arbMinProfitFilter, setArbMinProfitFilter] = useState<number | null>(null);
+	const [arbMarketTypeFilter, setArbMarketTypeFilter] = useState<string[]>([]);
+	const [arbSportsbookFilter, setArbSportsbookFilter] = useState<string[]>([]);
 
 	// WebSocket connection status
 	const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
@@ -120,7 +136,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		setArbError('');
 
 		const filters: FilterOptions = {
-			sportsbooks: sportsbookFilter.length > 0 ? sportsbookFilter : null
+			sportsbooks: arbSportsbookFilter.length > 0 ? arbSportsbookFilter : null,
+			min_profit: arbMinProfitFilter,
+			league: arbLeagueFilter || null,
+			market_type: arbMarketTypeFilter.length > 0 ? arbMarketTypeFilter : null
 		};
 
 		wsService.subscribe('arbs', filters, (data) => {
@@ -208,9 +227,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [currentUser, shouldFetchCharts, connectionStatus]);
 
-	// Update filters dynamically when they change (NO reconnection needed)
+	// Update terminal filters dynamically when they change (NO reconnection needed)
 	useEffect(() => {
-		if (connectionStatus !== 'connected') return;
+		if (connectionStatus !== 'connected' || !shouldFetchCharts) return;
 
 		const filters: FilterOptions = {
 			league: leagueFilter || null,
@@ -218,10 +237,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
 			sportsbooks: sportsbookFilter.length > 0 ? sportsbookFilter : null
 		};
 
-		console.log('Updating WebSocket filters:', filters);
+		console.log('Updating terminal WebSocket filters:', filters);
 		wsService.updateFilters(filters);
 
-	}, [leagueFilter, gameTimeFilter, sportsbookFilter, connectionStatus]);
+	}, [leagueFilter, gameTimeFilter, sportsbookFilter, connectionStatus, shouldFetchCharts]);
+
+	// Update arb filters dynamically (separate from terminal filters)
+	useEffect(() => {
+		if (connectionStatus !== 'connected' || !shouldFetchArbs) return;
+
+		const filters: FilterOptions = {
+			sportsbooks: arbSportsbookFilter.length > 0 ? arbSportsbookFilter : null,
+			min_profit: arbMinProfitFilter,
+			league: arbLeagueFilter || null,
+			market_type: arbMarketTypeFilter.length > 0 ? arbMarketTypeFilter : null
+		};
+
+		console.log('Updating arb WebSocket filters:', filters);
+		wsService.updateFilters(filters);
+
+	}, [arbLeagueFilter, arbMinProfitFilter, arbMarketTypeFilter, arbSportsbookFilter, connectionStatus, shouldFetchArbs]);
 
 	const value = {
 		arbData,
@@ -238,6 +273,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		setGameTimeFilter,
 		sportsbookFilter,
 		setSportsbookFilter,
+		arbLeagueFilter,
+		setArbLeagueFilter,
+		arbMinProfitFilter,
+		setArbMinProfitFilter,
+		arbMarketTypeFilter,
+		setArbMarketTypeFilter,
+		arbSportsbookFilter,
+		setArbSportsbookFilter,
 		connectionStatus,
 	};
 

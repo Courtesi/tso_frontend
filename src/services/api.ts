@@ -6,6 +6,29 @@ export interface CreatePortalSessionRequest {
 	returnUrl: string;
 }
 
+// Sportsbook configuration interfaces
+export interface SportsbookInfo {
+	icon: string;
+	display_name: string;
+}
+
+export interface SportsbooksResponse {
+	sportsbooks: Record<string, SportsbookInfo>;
+}
+
+// Tier features configuration interfaces
+export interface TierInfo {
+	name: string;
+	description?: string;
+	price?: string;
+	features_intro?: string;
+	features: string[];
+}
+
+export interface TierFeaturesResponse {
+	tiers: Record<string, TierInfo>;
+}
+
 export interface Arbs {
 	message: string;
 	tier: string;
@@ -157,6 +180,14 @@ class ApiService {
 
 	async getHealth(): Promise<{ msg: string }> {
 		return this.publicRequest('/api/health');
+	}
+
+	async getSportsbooks(): Promise<SportsbooksResponse> {
+		return this.publicRequest('/api/config/sportsbooks');
+	}
+
+	async getTierFeatures(): Promise<TierFeaturesResponse> {
+		return this.publicRequest('/api/config/tiers');
 	}
 
 	// ==================== PROTECTED ENDPOINTS ====================

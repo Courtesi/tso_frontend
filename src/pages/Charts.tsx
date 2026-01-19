@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
@@ -10,6 +10,7 @@ import GameListSidebar from '../components/GameListSidebar';
 // Leagues available to free tier users
 const FREE_TIER_LEAGUES = ['NBA', 'NFL', 'MLB'];
 const ALL_LEAGUES = ['NBA', 'NFL', 'NHL', 'MLB', 'NCAAB', 'NCAAF'];
+const SPORTSBOOKS = ['draftkings', 'fanduel', 'betmgm', 'caesars', 'fliff', 'novig', 'prophetx', 'kalshi'];
 
 function Charts() {
 	const { currentUser, userTier, loading: authLoading } = useAuth();
@@ -28,6 +29,21 @@ function Charts() {
 	} = useData();
 	const navigate = useNavigate();
 
+	const [sportsbookDropdownOpen, setSportsbookDropdownOpen] = useState(false);
+	const sportsbookDropdownRef = useRef<HTMLDivElement>(null);
+
+	// Close dropdown when clicking outside
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			if (sportsbookDropdownRef.current && !sportsbookDropdownRef.current.contains(event.target as Node)) {
+				setSportsbookDropdownOpen(false);
+			}
+		};
+
+		document.addEventListener('mousedown', handleClickOutside);
+		return () => document.removeEventListener('mousedown', handleClickOutside);
+	}, []);
+
 	useEffect(() => {
 		if (authLoading) return;
 		if (!currentUser) {
@@ -35,6 +51,14 @@ function Charts() {
 			return;
 		}
 	}, [currentUser, navigate, authLoading]);
+
+	const handleSportsbookToggle = (sportsbook: string) => {
+		if (sportsbookFilter.includes(sportsbook)) {
+			setSportsbookFilter(sportsbookFilter.filter(s => s !== sportsbook));
+		} else {
+			setSportsbookFilter([...sportsbookFilter, sportsbook]);
+		}
+	};
 
 	if (authLoading) {
 		return (
@@ -143,37 +167,54 @@ function Charts() {
 										})}
 									</select>
 
-									<div className="bg-gray-700 rounded-lg p-3">
-										<div className="flex items-center justify-between mb-2">
-											<label className="text-sm text-gray-400">Sportsbooks</label>
-											{sportsbookFilter.length > 0 && (
-												<button
-													onClick={() => setSportsbookFilter([])}
-													className="text-xs text-indigo-400 hover:text-indigo-300 underline"
-												>
-													Clear all
-												</button>
-											)}
-										</div>
-										<div className="space-y-1 max-h-48 overflow-y-auto">
-											{['draftkings', 'fanduel', 'betmgm', 'caesars', 'fliff', 'novig', 'prophetx', 'kalshi'].map(sb => (
-												<label key={sb} className="flex items-center gap-2 cursor-pointer hover:bg-gray-600 px-2 py-1 rounded">
-													<input
-														type="checkbox"
-														checked={sportsbookFilter.includes(sb)}
-														onChange={(e) => {
-															if (e.target.checked) {
-																setSportsbookFilter([...sportsbookFilter, sb]);
-															} else {
-																setSportsbookFilter(sportsbookFilter.filter(s => s !== sb));
-															}
-														}}
-														className="w-4 h-4 text-indigo-600 bg-gray-800 border-gray-600 rounded focus:ring-indigo-500"
-													/>
-													<span className="text-sm text-white capitalize">{sb}</span>
-												</label>
-											))}
-										</div>
+									<div className="relative" ref={sportsbookDropdownRef}>
+										<button
+											onClick={() => setSportsbookDropdownOpen(!sportsbookDropdownOpen)}
+											className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between"
+										>
+											<span>
+												{sportsbookFilter.length === 0
+													? 'All Sportsbooks'
+													: `${sportsbookFilter.length} selected`}
+											</span>
+											<svg
+												className={`w-4 h-4 ml-2 transition-transform ${sportsbookDropdownOpen ? 'rotate-180' : ''}`}
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+											>
+												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+											</svg>
+										</button>
+
+										{sportsbookDropdownOpen && (
+											<div className="absolute top-full left-0 right-0 mt-1 bg-gray-700 rounded-lg shadow-lg z-50">
+												{sportsbookFilter.length > 0 && (
+													<button
+														onClick={() => setSportsbookFilter([])}
+														className="w-full text-left px-3 py-2 text-xs text-indigo-400 hover:text-indigo-300 hover:bg-gray-600 border-b border-gray-600"
+													>
+														Clear all
+													</button>
+												)}
+												<div className="py-1 max-h-60 overflow-y-auto">
+													{SPORTSBOOKS.map(sb => (
+														<label
+															key={sb}
+															className="flex items-center gap-2 cursor-pointer hover:bg-gray-600 px-3 py-2"
+														>
+															<input
+																type="checkbox"
+																checked={sportsbookFilter.includes(sb)}
+																onChange={() => handleSportsbookToggle(sb)}
+																className="w-4 h-4 text-indigo-600 bg-gray-800 border-gray-600 rounded focus:ring-indigo-500"
+															/>
+															<span className="text-sm text-white capitalize">{sb}</span>
+														</label>
+													))}
+												</div>
+											</div>
+										)}
 									</div>
 								</div>
 

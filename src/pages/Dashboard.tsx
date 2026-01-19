@@ -1,9 +1,11 @@
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, Fragment, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
+import { api, type SportsbookInfo } from '../services/api';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
+import ArbFilters from '../components/ArbFilters';
 
 // interface BetSide {
 // 	team: string;
@@ -25,53 +27,36 @@ import Sidebar from '../components/Sidebar';
 // 	expires_in_minutes: number;
 // }
 
+// Cache sportsbook config at module level to avoid refetching
+let sportsbooksCache: Record<string, SportsbookInfo> | null = null;
+
 function Dashboard() {
 	const { currentUser, userTier, loading: authLoading, refreshToken } = useAuth();
 	const { arbData: bettingData, arbLoading: loading, arbError: error } = useData();
 	const navigate = useNavigate();
 	const [successMessage, setSuccessMessage] = useState('');
+	const [sportsbooks, setSportsbooks] = useState<Record<string, SportsbookInfo>>(sportsbooksCache || {});
+
+	// Fetch sportsbook config on mount
+	useEffect(() => {
+		if (sportsbooksCache) return;
+
+		api.getSportsbooks()
+			.then(response => {
+				sportsbooksCache = response.sportsbooks;
+				setSportsbooks(response.sportsbooks);
+			})
+			.catch(err => {
+				console.error('Failed to fetch sportsbooks config:', err);
+			});
+	}, []);
 
 	// Helper function to get sportsbook icon path
-	const getSportsbookIcon = (sportsbookName: string): string | null => {
+	const getSportsbookIcon = useCallback((sportsbookName: string): string | null => {
 		const normalized = sportsbookName.toLowerCase().replace(/\s+/g, '');
-		const iconMap: { [key: string]: string } = {
-			'ballybet': 'ballybet.avif',
-			'bally': 'ballybet.avif',
-			'bet105': 'bet105.png',
-			'bet365': 'bet365.png',
-			'betmgm': 'betmgm.avif',
-			'betparx': 'betparx.png',
-			'betr': 'betr.png',
-			'betrivers': 'betrivers.avif',
-			'betus': 'betus.png',
-			'betwhale': 'betwhale.png',
-			'bodog': 'bodog.png',
-			'borgata': 'borgata.avif',
-			'bovada': 'bovada.png',
-			'caesars': 'caesars.avif',
-			'circa': 'circa.png',
-			'crabsports': 'crabsports.avif',
-			'desertdiamond': 'desertdiamond.avif',
-			'draftkings': 'draftkings.avif',
-			'espnbet': 'espnbet.png',
-			'fanatics': 'fanatics.avif',
-			'fanduel': 'fanduel.avif',
-			'fliff': 'fliff.png',
-			'hardrockbet': 'hardrockbet.avif',
-			'hardrock': 'hardrockbet.avif',
-			'mybookie': 'mybookie.png',
-			'novig': 'novig.webp',
-			'pinnacle': 'pinnacle.png',
-			'prophetx': 'prophetx.png',
-			'rebet': 'rebet.png',
-			'sporttrade': 'sporttrade.avif',
-			'sportzino': 'sportzino.jfif',
-			'thescore': 'thescore.png',
-			'unibet': 'unibet.png',
-			'kalshi': 'kalshi.png',
-		};
-		return iconMap[normalized] ? `/sportsbook_icons/${iconMap[normalized]}` : null;
-	};
+		const sportsbookInfo = sportsbooks[normalized];
+		return sportsbookInfo ? `/sportsbook_icons/${sportsbookInfo.icon}` : null;
+	}, [sportsbooks]);
 
 	useEffect(() => {
 		// Check for successful checkout in URL params
@@ -147,6 +132,13 @@ function Dashboard() {
 						>
 							Upgrade
 						</button>
+					</div>
+				)}
+
+				{/* Filters */}
+				{!loading && !error && (
+					<div className="max-w-7xl mx-auto">
+						<ArbFilters />
 					</div>
 				)}
 

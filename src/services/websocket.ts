@@ -3,9 +3,14 @@ import { auth } from '../config/firebase';
 const WS_URL = import.meta.env.VITE_API_URL?.replace('http', 'ws') || 'ws://localhost:8000';
 
 export interface FilterOptions {
+	// Terminal/Charts filters
 	league?: string | null;
 	game_time?: string | null;
 	sportsbooks?: string[] | null;
+
+	// Arb-specific filters
+	min_profit?: number | null;
+	market_type?: string | string[] | null;
 }
 
 export type ConnectionStatus = 'connected' | 'disconnected' | 'reconnecting';
