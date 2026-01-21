@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
+import { api, type SportsbookInfo } from '../services/api';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import GameLineChart from '../components/GameLineChart';
@@ -10,7 +11,9 @@ import GameListSidebar from '../components/GameListSidebar';
 // Leagues available to free tier users
 const FREE_TIER_LEAGUES = ['NBA', 'NFL', 'MLB'];
 const ALL_LEAGUES = ['NBA', 'NFL', 'NHL', 'MLB', 'NCAAB', 'NCAAF'];
-const SPORTSBOOKS = ['draftkings', 'fanduel', 'betmgm', 'caesars', 'fliff', 'novig', 'prophetx', 'kalshi'];
+
+// Cache sportsbook config at module level to avoid refetching
+let sportsbooksCache: Record<string, SportsbookInfo> | null = null;
 
 function Charts() {
 	const { currentUser, userTier, loading: authLoading } = useAuth();
@@ -31,6 +34,21 @@ function Charts() {
 
 	const [sportsbookDropdownOpen, setSportsbookDropdownOpen] = useState(false);
 	const sportsbookDropdownRef = useRef<HTMLDivElement>(null);
+	const [sportsbooks, setSportsbooks] = useState<Record<string, SportsbookInfo>>(sportsbooksCache || {});
+
+	// Fetch sportsbook config on mount
+	useEffect(() => {
+		if (sportsbooksCache) return;
+
+		api.getSportsbooks()
+			.then(response => {
+				sportsbooksCache = response.sportsbooks;
+				setSportsbooks(response.sportsbooks);
+			})
+			.catch(err => {
+				console.error('Failed to fetch sportsbooks config:', err);
+			});
+	}, []);
 
 	// Close dropdown when clicking outside
 	useEffect(() => {
@@ -198,18 +216,18 @@ function Charts() {
 													</button>
 												)}
 												<div className="py-1 max-h-60 overflow-y-auto">
-													{SPORTSBOOKS.map(sb => (
+													{Object.entries(sportsbooks).map(([key, info]) => (
 														<label
-															key={sb}
+															key={key}
 															className="flex items-center gap-2 cursor-pointer hover:bg-gray-600 px-3 py-2"
 														>
 															<input
 																type="checkbox"
-																checked={sportsbookFilter.includes(sb)}
-																onChange={() => handleSportsbookToggle(sb)}
+																checked={sportsbookFilter.includes(key)}
+																onChange={() => handleSportsbookToggle(key)}
 																className="w-4 h-4 text-indigo-600 bg-gray-800 border-gray-600 rounded focus:ring-indigo-500"
 															/>
-															<span className="text-sm text-white capitalize">{sb}</span>
+															<span className="text-sm text-white">{info.display_name}</span>
 														</label>
 													))}
 												</div>
