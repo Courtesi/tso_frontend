@@ -163,16 +163,16 @@ function Dashboard() {
 							{/* Table Container */}
 							<div className="shadow-xl rounded-lg overflow-hidden">
 								<div className="overflow-x-auto">
-									<table className="w-full">
+									<table className="w-full table-fixed">
 										{/* Table Header */}
 										<thead className="border-b border-gray-400/30">
 											<tr>
-												<th className="px-6 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Value</th>
-												<th className="px-6 py-4 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Game</th>
-												<th className="px-6 py-4 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Market</th>
-												<th className="px-6 py-4 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Bet</th>
-												<th className="px-6 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Bet Size</th>
-												<th className="px-6 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Link</th>
+												<th className="w-[8%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Value</th>
+												<th className="w-[28%] px-2 py-4 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Game</th>
+												<th className="w-[12%] px-2 py-4 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Market</th>
+												<th className="w-[28%] px-2 py-4 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Bet</th>
+												<th className="w-[12%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Bet Size</th>
+												<th className="w-[12%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Link</th>
 											</tr>
 										</thead>
 
@@ -195,30 +195,32 @@ function Dashboard() {
 												return (
 													<Fragment key={bet.id}>
 														{/* First Row - Bet 1 */}
-														<tr className={`${rowBg} transition-colors border-b border-indigo-400/5`}>
+														<tr className={`${rowBg} transition-colors border-b border-indigo-400/5 h-8`}>
 															{/* Value (spans 2 rows) */}
-															<td rowSpan={2} className="py-1 text-center border-r border-indigo-400/10">
+															<td rowSpan={2} className="px-2 py-1 text-center border-r border-indigo-400/10 align-middle">
 																<div className="text-sm font-bold text-green-400">
 																	{bet.profit_percentage.toFixed(2)}%
 																</div>
 															</td>
 
 															{/* Game (spans 2 rows) */}
-															<td rowSpan={2} className="px-2 py-1 border-r border-indigo-400/10">
-																<div className="text-sm font-medium text-white">{bet.matchup.replace(/_/g, ' ')} - {bet.league}</div>
+															<td rowSpan={2} className="px-2 py-1 border-r border-indigo-400/10 align-middle">
+																<div className="text-sm font-medium text-white truncate" title={`${bet.matchup.replace(/_/g, ' ')} - ${bet.league}`}>
+																	{bet.matchup.replace(/_/g, ' ')} - {bet.league}
+																</div>
 																<div className="text-xs text-gray-400 mt-1">{gameTime}</div>
 															</td>
 
 															{/* Market (spans 2 rows) */}
-															<td rowSpan={2} className="px-2 py-2 border-r border-indigo-400/10">
-																<span className="px-1 py-1 font-semibold text-gray-100">
+															<td rowSpan={2} className="px-2 py-2 border-r border-indigo-400/10 align-middle">
+																<span className="px-1 py-1 font-semibold text-gray-100 truncate block" title={bet.market}>
 																	{bet.market}
 																</span>
 															</td>
 
 															{/* Bet 1 */}
-															<td className="px-2 py-1">
-																<div className="text-sm text-white font-medium">
+															<td className="px-2 py-1 align-middle">
+																<div className="text-sm text-white font-medium truncate" title={bet.bet1.team.replace(/_/g, ' ')}>
 																	{bet.bet1.team.replace(/_/g, ' ')}
 																	<span className="ml-2 px-2 py-0.5 text-xs text-gray-300">
 																		{bet.bet1.odds}
@@ -227,14 +229,14 @@ function Dashboard() {
 															</td>
 
 															{/* Bet Size 1 */}
-															<td className="py-1 text-center">
+															<td className="px-2 py-1 text-center align-middle">
 																<div className="text-sm text-gray-200">
 																	${bet.bet1.stake.toFixed(2)}
 																</div>
 															</td>
 
 															{/* Link 1 */}
-															<td className="px-2 py-1 text-center">
+															<td className="px-2 py-1 text-center align-middle">
 																{getSportsbookIcon(bet.bet1.sportsbook) ? (
 																	<img
 																		src={getSportsbookIcon(bet.bet1.sportsbook)!}
@@ -254,10 +256,10 @@ function Dashboard() {
 														</tr>
 
 														{/* Second Row - Bet 2 */}
-														<tr className={`${rowBg} transition-colors`}>
+														<tr className={`${rowBg} transition-colors h-8`}>
 															{/* Bet 2 */}
-															<td className="px-2 py-1">
-																<div className="text-sm text-white font-medium">
+															<td className="px-2 py-1 align-middle">
+																<div className="text-sm text-white font-medium truncate" title={bet.bet2.team.replace(/_/g, ' ')}>
 																	{bet.bet2.team.replace(/_/g, ' ')}
 																	<span className="ml-2 px-2 py-0.5 text-xs text-gray-300">
 																		{bet.bet2.odds}
@@ -266,14 +268,14 @@ function Dashboard() {
 															</td>
 
 															{/* Bet Size 2 */}
-															<td className="py-1 text-center">
+															<td className="px-2 py-1 text-center align-middle">
 																<div className="text-sm text-gray-200">
 																	${bet.bet2.stake.toFixed(2)}
 																</div>
 															</td>
 
 															{/* Link 2 */}
-															<td className="px-2 py-1 text-center">
+															<td className="px-2 py-1 text-center align-middle">
 																{getSportsbookIcon(bet.bet2.sportsbook) ? (
 																	<img
 																		src={getSportsbookIcon(bet.bet2.sportsbook)!}

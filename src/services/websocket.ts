@@ -10,6 +10,7 @@ export interface FilterOptions {
 
 	// Arb-specific filters
 	min_profit?: number | null;
+	max_profit?: number | null;
 	market_type?: string | string[] | null;
 }
 

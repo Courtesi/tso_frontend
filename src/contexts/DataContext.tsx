@@ -50,6 +50,8 @@ interface DataContextType {
 	setArbLeagueFilter: (league: string) => void;
 	arbMinProfitFilter: number | null;
 	setArbMinProfitFilter: (minProfit: number | null) => void;
+	arbMaxProfitFilter: number | null;
+	setArbMaxProfitFilter: (maxProfit: number | null) => void;
 	arbMarketTypeFilter: string[];
 	setArbMarketTypeFilter: (marketTypes: string[]) => void;
 	arbSportsbookFilter: string[];
@@ -87,7 +89,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
 	// Arb-specific filters
 	const [arbLeagueFilter, setArbLeagueFilter] = useState<string>('');
-	const [arbMinProfitFilter, setArbMinProfitFilter] = useState<number | null>(null);
+	const [arbMinProfitFilter, setArbMinProfitFilter] = useState<number | null>(0);
+	const [arbMaxProfitFilter, setArbMaxProfitFilter] = useState<number | null>(null);
 	const [arbMarketTypeFilter, setArbMarketTypeFilter] = useState<string[]>([]);
 	const [arbSportsbookFilter, setArbSportsbookFilter] = useState<string[]>([]);
 
@@ -138,6 +141,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		const filters: FilterOptions = {
 			sportsbooks: arbSportsbookFilter.length > 0 ? arbSportsbookFilter : null,
 			min_profit: arbMinProfitFilter,
+			max_profit: arbMaxProfitFilter,
 			league: arbLeagueFilter || null,
 			market_type: arbMarketTypeFilter.length > 0 ? arbMarketTypeFilter : null
 		};
@@ -243,20 +247,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
 	}, [leagueFilter, gameTimeFilter, sportsbookFilter, connectionStatus, shouldFetchCharts]);
 
 	// Update arb filters dynamically (separate from terminal filters)
+	// Debounced to prevent overwhelming WebSocket when slider is dragged rapidly
 	useEffect(() => {
 		if (connectionStatus !== 'connected' || !shouldFetchArbs) return;
 
-		const filters: FilterOptions = {
-			sportsbooks: arbSportsbookFilter.length > 0 ? arbSportsbookFilter : null,
-			min_profit: arbMinProfitFilter,
-			league: arbLeagueFilter || null,
-			market_type: arbMarketTypeFilter.length > 0 ? arbMarketTypeFilter : null
-		};
+		console.log('[ArbFilter] Scheduling update - min:', arbMinProfitFilter, 'max:', arbMaxProfitFilter);
 
-		console.log('Updating arb WebSocket filters:', filters);
-		wsService.updateFilters(filters);
+		const timeoutId = setTimeout(() => {
+			const filters: FilterOptions = {
+				sportsbooks: arbSportsbookFilter.length > 0 ? arbSportsbookFilter : null,
+				min_profit: arbMinProfitFilter,
+				max_profit: arbMaxProfitFilter,
+				league: arbLeagueFilter || null,
+				market_type: arbMarketTypeFilter.length > 0 ? arbMarketTypeFilter : null
+			};
 
-	}, [arbLeagueFilter, arbMinProfitFilter, arbMarketTypeFilter, arbSportsbookFilter, connectionStatus, shouldFetchArbs]);
+			console.log('[ArbFilter] Sending filters:', JSON.stringify(filters));
+			wsService.updateFilters(filters);
+		}, 300);
+
+		return () => clearTimeout(timeoutId);
+	}, [arbLeagueFilter, arbMinProfitFilter, arbMaxProfitFilter, arbMarketTypeFilter, arbSportsbookFilter, connectionStatus, shouldFetchArbs]);
 
 	const value = {
 		arbData,
@@ -277,6 +288,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		setArbLeagueFilter,
 		arbMinProfitFilter,
 		setArbMinProfitFilter,
+		arbMaxProfitFilter,
+		setArbMaxProfitFilter,
 		arbMarketTypeFilter,
 		setArbMarketTypeFilter,
 		arbSportsbookFilter,

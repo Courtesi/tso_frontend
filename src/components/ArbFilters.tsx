@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
+import Slider from 'rc-slider';
+import 'rc-slider/assets/index.css';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 
@@ -16,6 +18,10 @@ const MARKET_TYPES = [
 // Available sportsbooks
 const SPORTSBOOKS = ['draftkings', 'fanduel', 'betmgm', 'caesars', 'fliff', 'novig', 'prophetx', 'kalshi'];
 
+// Profit range constants
+const MIN_PROFIT = 0;
+const MAX_PROFIT = 20;
+
 function ArbFilters() {
 	const { userTier } = useAuth();
 	const {
@@ -23,6 +29,8 @@ function ArbFilters() {
 		setArbLeagueFilter,
 		arbMinProfitFilter,
 		setArbMinProfitFilter,
+		arbMaxProfitFilter,
+		setArbMaxProfitFilter,
 		arbMarketTypeFilter,
 		setArbMarketTypeFilter,
 		arbSportsbookFilter,
@@ -33,6 +41,10 @@ function ArbFilters() {
 	const [marketTypeDropdownOpen, setMarketTypeDropdownOpen] = useState(false);
 	const sportsbookDropdownRef = useRef<HTMLDivElement>(null);
 	const marketTypeDropdownRef = useRef<HTMLDivElement>(null);
+
+	// Slider values
+	const minValue = arbMinProfitFilter ?? MIN_PROFIT;
+	const maxValue = arbMaxProfitFilter ?? MAX_PROFIT;
 
 	// Close dropdowns when clicking outside
 	useEffect(() => {
@@ -49,14 +61,13 @@ function ArbFilters() {
 		return () => document.removeEventListener('mousedown', handleClickOutside);
 	}, []);
 
-	const handleMinProfitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const value = e.target.value;
-		if (value === '') {
-			setArbMinProfitFilter(null);
-		} else {
-			const num = parseFloat(value);
-			if (!isNaN(num) && num >= 0) {
-				setArbMinProfitFilter(num);
+	const handleSliderChange = (values: number | number[]) => {
+		if (Array.isArray(values)) {
+			setArbMinProfitFilter(values[0]);
+			if (values[1] >= MAX_PROFIT) {
+				setArbMaxProfitFilter(null); // null means no upper limit
+			} else {
+				setArbMaxProfitFilter(values[1]);
 			}
 		}
 	};
@@ -80,18 +91,33 @@ function ArbFilters() {
 	return (
 		<div className="bg-gray-800 rounded-lg p-4 mb-6">
 			<div className="flex flex-wrap items-start gap-4">
-				{/* Min Profit Filter */}
-				<div className="flex flex-col">
-					<label className="text-sm text-gray-400 mb-1">Min Profit %</label>
-					<input
-						type="number"
-						step="0.1"
-						min="0"
-						value={arbMinProfitFilter ?? ''}
-						onChange={handleMinProfitChange}
-						placeholder="0.0"
-						className="bg-gray-700 text-white px-3 py-2 rounded-lg w-24 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-					/>
+				{/* Profit Range Slider */}
+				<div className="flex flex-col min-w-[200px]">
+					<label className="text-sm text-gray-400 mb-1">
+						Profit Range: {minValue.toFixed(1)}% - {arbMaxProfitFilter === null ? 'Max' : `${maxValue.toFixed(1)}%`}
+					</label>
+					<div className="pt-1 pb-2">
+						<Slider
+							range
+							min={MIN_PROFIT}
+							max={MAX_PROFIT}
+							step={0.1}
+							value={[minValue, maxValue]}
+							onChange={handleSliderChange}
+							styles={{
+								track: { backgroundColor: '#6366f1', height: 6 },
+								rail: { backgroundColor: '#374151', height: 6 },
+								handle: {
+									backgroundColor: '#fff',
+									borderColor: '#6366f1',
+									height: 16,
+									width: 16,
+									marginTop: -5,
+									opacity: 1
+								}
+							}}
+						/>
+					</div>
 				</div>
 
 				{/* League Filter */}
