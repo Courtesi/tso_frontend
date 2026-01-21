@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
+import { useSidebar } from '../contexts/SidebarContext';
 import { api, type SportsbookInfo } from '../services/api';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
@@ -30,6 +31,7 @@ function Charts() {
 		sportsbookFilter,
 		setSportsbookFilter
 	} = useData();
+	const { isCollapsed } = useSidebar();
 	const navigate = useNavigate();
 
 	const [sportsbookDropdownOpen, setSportsbookDropdownOpen] = useState(false);
@@ -93,7 +95,7 @@ function Charts() {
 			<Navbar />
 			<Sidebar />
 
-			<div className="md:ml-64 px-4 py-20 pt-24">
+			<div className={`px-4 py-20 pt-24 transition-all duration-300 ${isCollapsed ? 'md:ml-16' : 'md:ml-64'}`}>
 				{/* Header */}
 				<div className="max-w-7xl mx-auto mb-8">
 					{/* Info banner for free users */}

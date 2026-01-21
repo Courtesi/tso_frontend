@@ -24,7 +24,7 @@ function Navbar({ onAuthModalOpen }: NavbarProps) {
 	const isUserPage = isDashboard || isTerminal;
 
 	return (
-		<div className={`bg-indigo-900 ${isUserPage ? 'md:bg-gray-900' : 'md:bg-transparent'} justify-center fixed top-0 left-0 right-0 z-30 h-17`}>
+		<div className={`bg-indigo-900 ${isUserPage ? 'md:bg-gray-900 border-b-1 border-gray-700' : 'md:bg-transparent'} justify-center fixed top-0 left-0 right-0 z-30 h-17`}>
 			{/* Floating Logo - stays fixed on screen */}
 			<div className="fixed top-5 md:top-4 left-6 z-40">
 				<button

@@ -3,6 +3,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { StripeProvider } from './contexts/StripeContext';
 import { ParticlesProvider } from './contexts/ParticlesContext';
 import { DataProvider } from './contexts/DataContext';
+import { SidebarProvider } from './contexts/SidebarContext';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Charts from './pages/Charts';
@@ -16,17 +17,19 @@ function App() {
 			<AuthProvider>
 				<StripeProvider>
 					<DataProvider>
-						<ParticlesProvider>
-							<VerificationBanner />
-							<Routes>
-								<Route path="/" element={<Home />} />
-								<Route path="/dashboard" element={<Dashboard />} />
-								<Route path="/charts" element={<Charts />} />
-								<Route path="/pricing" element={<Subscription />} />
-								<Route path="/subscription" element={<Subscription />} />
-								<Route path="*" element={<NotFound />} />
-							</Routes>
-						</ParticlesProvider>
+						<SidebarProvider>
+							<ParticlesProvider>
+								<VerificationBanner />
+								<Routes>
+									<Route path="/" element={<Home />} />
+									<Route path="/dashboard" element={<Dashboard />} />
+									<Route path="/charts" element={<Charts />} />
+									<Route path="/pricing" element={<Subscription />} />
+									<Route path="/subscription" element={<Subscription />} />
+									<Route path="*" element={<NotFound />} />
+								</Routes>
+							</ParticlesProvider>
+						</SidebarProvider>
 					</DataProvider>
 				</StripeProvider>
 			</AuthProvider>

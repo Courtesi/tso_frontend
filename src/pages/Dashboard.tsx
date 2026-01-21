@@ -2,6 +2,7 @@ import { useState, useEffect, Fragment, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
+import { useSidebar } from '../contexts/SidebarContext';
 import { api, type SportsbookInfo } from '../services/api';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
@@ -33,6 +34,7 @@ let sportsbooksCache: Record<string, SportsbookInfo> | null = null;
 function Dashboard() {
 	const { currentUser, userTier, loading: authLoading, refreshToken } = useAuth();
 	const { arbData: bettingData, arbLoading: loading, arbError: error } = useData();
+	const { isCollapsed } = useSidebar();
 	const navigate = useNavigate();
 	const [successMessage, setSuccessMessage] = useState('');
 	const [sportsbooks, setSportsbooks] = useState<Record<string, SportsbookInfo>>(sportsbooksCache || {});
@@ -103,7 +105,7 @@ function Dashboard() {
 			<Sidebar />
 
 			{/* Main Content */}
-			<div className="md:ml-64 px-4 py-20 pt-24">
+			<div className={`px-4 py-20 pt-24 transition-all duration-300 ${isCollapsed ? 'md:ml-16' : 'md:ml-64'}`}>
 
 				{/* Success Message */}
 				{successMessage && (
