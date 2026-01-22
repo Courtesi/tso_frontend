@@ -39,8 +39,10 @@ function ArbFilters() {
 
 	const [sportsbookDropdownOpen, setSportsbookDropdownOpen] = useState(false);
 	const [marketTypeDropdownOpen, setMarketTypeDropdownOpen] = useState(false);
+	const [leagueDropdownOpen, setLeagueDropdownOpen] = useState(false);
 	const sportsbookDropdownRef = useRef<HTMLDivElement>(null);
 	const marketTypeDropdownRef = useRef<HTMLDivElement>(null);
+	const leagueDropdownRef = useRef<HTMLDivElement>(null);
 
 	// Slider values
 	const minValue = arbMinProfitFilter ?? MIN_PROFIT;
@@ -54,6 +56,9 @@ function ArbFilters() {
 			}
 			if (marketTypeDropdownRef.current && !marketTypeDropdownRef.current.contains(event.target as Node)) {
 				setMarketTypeDropdownOpen(false);
+			}
+			if (leagueDropdownRef.current && !leagueDropdownRef.current.contains(event.target as Node)) {
+				setLeagueDropdownOpen(false);
 			}
 		};
 
@@ -121,35 +126,67 @@ function ArbFilters() {
 				</div>
 
 				{/* League Filter */}
-				<div className="flex flex-col">
+				<div className="flex flex-col relative" ref={leagueDropdownRef}>
 					<label className="text-sm text-gray-400 mb-1">League</label>
-					<select
-						value={arbLeagueFilter}
-						onChange={(e) => {
-							const value = e.target.value;
-							// Prevent selecting locked leagues for free users
-							if (userTier === 'free' && value && !FREE_TIER_LEAGUES.includes(value)) {
-								return;
-							}
-							setArbLeagueFilter(value);
+					<button
+						onClick={(e) => {
+							e.stopPropagation();
+							setLeagueDropdownOpen(!leagueDropdownOpen);
 						}}
-						className="bg-gray-700 text-white px-3 py-2 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500"
+						className="bg-gray-700 text-white px-3 py-2 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between min-w-[120px]"
 					>
-						<option value="">All Leagues</option>
-						{ALL_LEAGUES.map(league => {
-							const isLocked = userTier === 'free' && !FREE_TIER_LEAGUES.includes(league);
-							return (
-								<option
-									key={league}
-									value={league}
-									disabled={isLocked}
-									className={isLocked ? 'text-gray-500' : ''}
-								>
-									{league}{isLocked ? ' (Premium)' : ''}
-								</option>
-							);
-						})}
-					</select>
+						<span>{arbLeagueFilter || 'All Leagues'}</span>
+						<svg
+							className={`w-4 h-4 ml-2 transition-transform ${leagueDropdownOpen ? 'rotate-180' : ''}`}
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+						</svg>
+					</button>
+
+					{leagueDropdownOpen && (
+						<>
+							<div
+								className="fixed inset-0 z-40"
+								onClick={() => setLeagueDropdownOpen(false)}
+							/>
+							<div className="absolute top-full left-0 mt-1 bg-gray-700 rounded-lg shadow-lg z-50 min-w-[140px]">
+								<div className="py-1">
+									<button
+										onClick={() => {
+											setArbLeagueFilter('');
+											setLeagueDropdownOpen(false);
+										}}
+										className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-600 cursor-pointer ${!arbLeagueFilter ? 'text-indigo-400' : 'text-white'}`}
+									>
+										All Leagues
+									</button>
+									{ALL_LEAGUES.map(league => {
+										const isLocked = userTier === 'free' && !FREE_TIER_LEAGUES.includes(league);
+										return (
+											<button
+												key={league}
+												onClick={() => {
+													if (!isLocked) {
+														setArbLeagueFilter(league);
+														setLeagueDropdownOpen(false);
+													}
+												}}
+												disabled={isLocked}
+												className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-600 ${
+													arbLeagueFilter === league ? 'text-indigo-400 cursor-pointer' : isLocked ? 'text-gray-500 cursor-not-allowed' : 'text-white cursor-pointer'
+												}`}
+											>
+												{league}{isLocked ? ' (Premium)' : ''}
+											</button>
+										);
+									})}
+								</div>
+							</div>
+						</>
+					)}
 				</div>
 
 				{/* Market Type Filter */}

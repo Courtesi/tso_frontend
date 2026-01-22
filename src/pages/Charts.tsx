@@ -35,7 +35,9 @@ function Charts() {
 	const navigate = useNavigate();
 
 	const [sportsbookDropdownOpen, setSportsbookDropdownOpen] = useState(false);
+	const [leagueDropdownOpen, setLeagueDropdownOpen] = useState(false);
 	const sportsbookDropdownRef = useRef<HTMLDivElement>(null);
+	const leagueDropdownRef = useRef<HTMLDivElement>(null);
 	const [sportsbooks, setSportsbooks] = useState<Record<string, SportsbookInfo>>(sportsbooksCache || {});
 
 	// Fetch sportsbook config on mount
@@ -52,11 +54,14 @@ function Charts() {
 			});
 	}, []);
 
-	// Close dropdown when clicking outside
+	// Close dropdowns when clicking outside
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
 			if (sportsbookDropdownRef.current && !sportsbookDropdownRef.current.contains(event.target as Node)) {
 				setSportsbookDropdownOpen(false);
+			}
+			if (leagueDropdownRef.current && !leagueDropdownRef.current.contains(event.target as Node)) {
+				setLeagueDropdownOpen(false);
 			}
 		};
 
@@ -150,47 +155,102 @@ function Charts() {
 							<div className="col-span-12 lg:col-span-3 order-1 lg:order-2">
 								{/* Filters */}
 								<div className="flex flex-col sm:flex-row lg:flex-col gap-4 mb-4">
-									<select
-										value={gameTimeFilter}
-										onChange={(e) => setGameTimeFilter(e.target.value)}
-										className="bg-gray-700 text-white px-4 py-2 rounded-lg cursor-pointer"
-									>
-										<option value="upcoming">Upcoming Games</option>
-										<option value="live">Live Games</option>
-									</select>
+									{/* Toggle Switch for Upcoming/Live */}
+									<div className="flex justify-end mb-2">
+										<div className="flex items-center bg-gray-700 rounded-lg p-1 w-fit">
+											<button
+												onClick={() => setGameTimeFilter('upcoming')}
+												className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 cursor-pointer ${
+													gameTimeFilter === 'upcoming'
+														? 'bg-indigo-600 text-white shadow-md'
+														: 'text-gray-400 hover:text-white'
+												}`}
+											>
+												Upcoming
+											</button>
+											<button
+												onClick={() => setGameTimeFilter('live')}
+												className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
+													gameTimeFilter === 'live'
+														? 'bg-indigo-600 text-white shadow-md'
+														: 'text-gray-400 hover:text-white'
+												}`}
+											>
+												<span className="relative flex h-2 w-2">
+													<span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${gameTimeFilter === 'live' ? 'bg-red-400' : 'bg-red-500'}`}></span>
+													<span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+												</span>
+												Live
+											</button>
+										</div>
+									</div>
 
-									<select
-										value={leagueFilter}
-										onChange={(e) => {
-											const value = e.target.value;
-											// Prevent selecting locked leagues for free users
-											if (userTier === 'free' && value && !FREE_TIER_LEAGUES.includes(value)) {
-												return;
-											}
-											setLeagueFilter(value);
-										}}
-										className="bg-gray-700 text-white px-4 py-2 rounded-lg cursor-pointer"
-									>
-										<option value="">All Leagues</option>
-										{ALL_LEAGUES.map(league => {
-											const isLocked = userTier === 'free' && !FREE_TIER_LEAGUES.includes(league);
-											return (
-												<option
-													key={league}
-													value={league}
-													disabled={isLocked}
-													className={isLocked ? 'text-gray-500' : ''}
-												>
-													{league}{isLocked ? ' (Premium)' : ''}
-												</option>
-											);
-										})}
-									</select>
+									<div className="relative" ref={leagueDropdownRef}>
+										<button
+											onClick={(e) => {
+												e.stopPropagation();
+												setLeagueDropdownOpen(!leagueDropdownOpen);
+											}}
+											className="w-full bg-gray-700 text-white px-3 py-1.5 h-[34px] rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between text-sm"
+										>
+											<span>{leagueFilter || 'All Leagues'}</span>
+											<svg
+												className={`w-4 h-4 ml-2 transition-transform ${leagueDropdownOpen ? 'rotate-180' : ''}`}
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+											>
+												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+											</svg>
+										</button>
+
+										{leagueDropdownOpen && (
+											<>
+												<div
+													className="fixed inset-0 z-40"
+													onClick={() => setLeagueDropdownOpen(false)}
+												/>
+												<div className="absolute top-full left-0 right-0 mt-1 bg-gray-700 rounded-lg shadow-lg z-50">
+													<div className="py-1">
+													<button
+														onClick={() => {
+															setLeagueFilter('');
+															setLeagueDropdownOpen(false);
+														}}
+														className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-600 cursor-pointer ${!leagueFilter ? 'text-indigo-400' : 'text-white'}`}
+													>
+														All Leagues
+													</button>
+													{ALL_LEAGUES.map(league => {
+														const isLocked = userTier === 'free' && !FREE_TIER_LEAGUES.includes(league);
+														return (
+															<button
+																key={league}
+																onClick={() => {
+																	if (!isLocked) {
+																		setLeagueFilter(league);
+																		setLeagueDropdownOpen(false);
+																	}
+																}}
+																disabled={isLocked}
+																className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-600 ${
+																	leagueFilter === league ? 'text-indigo-400 cursor-pointer' : isLocked ? 'text-gray-500 cursor-not-allowed' : 'text-white cursor-pointer'
+																}`}
+															>
+																{league}{isLocked ? ' (Premium)' : ''}
+															</button>
+														);
+													})}
+												</div>
+											</div>
+											</>
+										)}
+									</div>
 
 									<div className="relative" ref={sportsbookDropdownRef}>
 										<button
 											onClick={() => setSportsbookDropdownOpen(!sportsbookDropdownOpen)}
-											className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between"
+											className="w-full bg-gray-700 text-white px-3 py-1.5 h-[34px] rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between text-sm"
 										>
 											<span>
 												{sportsbookFilter.length === 0
