@@ -115,6 +115,60 @@ function decimalToProbability(decimal: number): number {
 }
 
 /**
+ * Convert any odds format to decimal
+ */
+export function toDecimalOdds(odds: number | string): number {
+	const inputFormat = detectOddsFormat(odds);
+
+	switch (inputFormat) {
+		case 'american':
+			return americanToDecimal(odds as number);
+		case 'fractional':
+			return fractionalToDecimal(odds as string);
+		case 'probability':
+			return probabilityToDecimal(odds as number);
+		case 'decimal':
+		default:
+			return typeof odds === 'string' ? parseFloat(odds) : odds;
+	}
+}
+
+/**
+ * Calculate optimal stake allocation for arbitrage betting
+ * Uses Kelly criterion fraction of bankroll and distributes stakes
+ * to ensure equal payout regardless of outcome
+ *
+ * @param odds1 - Odds for bet 1 (any format)
+ * @param odds2 - Odds for bet 2 (any format)
+ * @param bankroll - User's total bankroll
+ * @param kellyFraction - Fraction of bankroll to wager (e.g., 0.25 for 25%)
+ * @returns Object with stake1 and stake2
+ */
+export function calculateArbStakes(
+	odds1: number | string,
+	odds2: number | string,
+	bankroll: number,
+	kellyFraction: number
+): { stake1: number; stake2: number } {
+	const decimal1 = toDecimalOdds(odds1);
+	const decimal2 = toDecimalOdds(odds2);
+
+	// Calculate implied probabilities (inverse of decimal odds)
+	const impliedProb1 = 1 / decimal1;
+	const impliedProb2 = 1 / decimal2;
+	const totalImpliedProb = impliedProb1 + impliedProb2;
+
+	// Total amount to wager based on Kelly
+	const totalWager = bankroll * kellyFraction;
+
+	// Distribute stakes proportionally to ensure equal payout
+	const stake1 = totalWager * (impliedProb1 / totalImpliedProb);
+	const stake2 = totalWager * (impliedProb2 / totalImpliedProb);
+
+	return { stake1, stake2 };
+}
+
+/**
  * Format odds based on user's preferred display format
  * Auto-detects input format and converts accordingly
  *

@@ -5,7 +5,7 @@ import { useData } from '../contexts/DataContext';
 import { useSidebar } from '../contexts/SidebarContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { api, type SportsbookInfo } from '../services/api';
-import { formatOdds } from '../utils/oddsUtils';
+import { formatOdds, calculateArbStakes } from '../utils/oddsUtils';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import ArbFilters from '../components/ArbFilters';
@@ -161,7 +161,7 @@ function Dashboard() {
 										</thead>
 
 										{/* Table Body */}
-										<tbody className="divide-y divide-gray-400/20">
+										<tbody className="divide-y-2 divide-gray-400/50">
 											{bettingData.map((bet, index) => {
 												// Row background alternating (per bet pair, not per row)
 												const rowBg = index % 2 === 0
@@ -173,7 +173,7 @@ function Dashboard() {
 												const isStale = isPinnedArb && isArbStale(bet.id.toString());
 												// Golden left border for pinned arbs (amber for stale warning)
 												const pinnedBorder = isPinnedArb
-													? (isStale ? 'border-l-4 border-b-0 border-red-800' : "border-l-4 border-b-0 border-indigo-500")
+													? (isStale ? 'border-l-3 border-r-3 border-l-red-800 border-r-red-800' : "border-l-3 border-r-3 border-l-indigo-500 border-r-indigo-500")
 													: '';
 
 												// Format game time
@@ -184,10 +184,18 @@ function Dashboard() {
 													minute: '2-digit'
 												});
 
+												// Calculate stakes based on user's bankroll and Kelly fraction
+												const { stake1, stake2 } = calculateArbStakes(
+													bet.bet1.odds,
+													bet.bet2.odds,
+													settings?.bankroll || 1000,
+													settings?.kellyFraction || 0.25
+												);
+
 												return (
 													<Fragment key={bet.id}>
 														{/* First Row - Bet 1 */}
-														<tr className={`${rowBg} ${pinnedBorder} transition-colors border-b border-indigo-400/5 h-8`}>
+														<tr className={`${rowBg} ${pinnedBorder} transition-colors border-b-0 h-8`}>
 															{/* Pin Button (spans 2 rows) */}
 															<td rowSpan={2} className="px-1 py-1 text-center align-middle">
 																<PinButton
@@ -205,14 +213,14 @@ function Dashboard() {
 															</td>
 
 															{/* Value (spans 2 rows) */}
-															<td rowSpan={2} className="px-2 py-1 text-center border-r border-indigo-400/10 align-middle">
+															<td rowSpan={2} className="px-2 py-1 text-center border-r-2 border-gray-300/50 align-middle">
 																<div className="text-sm font-bold text-green-400">
 																	{bet.profit_percentage.toFixed(2)}%
 																</div>
 															</td>
 
 															{/* Game (spans 2 rows) */}
-															<td rowSpan={2} className="px-2 py-1 border-r border-indigo-400/10 align-middle">
+															<td rowSpan={2} className="px-2 py-1 border-r-2 border-gray-300/50 align-middle">
 																<div className="text-sm font-medium text-white truncate" title={`${bet.matchup.replace(/_/g, ' ')} - ${bet.league}`}>
 																	{bet.matchup.replace(/_/g, ' ')} - {bet.league}
 																</div>
@@ -226,7 +234,7 @@ function Dashboard() {
 															</td>
 
 															{/* Market (spans 2 rows) */}
-															<td rowSpan={2} className="px-2 py-2 border-r border-indigo-400/10 align-middle">
+															<td rowSpan={2} className="px-2 py-2 border-r-2 border-gray-300/50 align-middle">
 																<span className="px-1 py-1 font-semibold text-gray-100 truncate block" title={bet.market}>
 																	{bet.market}
 																</span>
@@ -245,7 +253,7 @@ function Dashboard() {
 															{/* Bet Size 1 */}
 															<td className="px-2 py-1 text-center align-middle">
 																<div className="text-sm text-gray-200">
-																	${bet.bet1.stake.toFixed(2)}
+																	${stake1.toFixed(2)}
 																</div>
 															</td>
 
@@ -270,7 +278,7 @@ function Dashboard() {
 														</tr>
 
 														{/* Second Row - Bet 2 */}
-														<tr className={`${rowBg} ${pinnedBorder} transition-colors h-8`}>
+														<tr className={`${rowBg} ${pinnedBorder} transition-colors h-8 border-t-0`}>
 															{/* Bet 2 */}
 															<td className="px-2 py-1 align-middle">
 																<div className="text-sm text-white font-medium truncate" title={bet.bet2.team.replace(/_/g, ' ')}>
@@ -284,7 +292,7 @@ function Dashboard() {
 															{/* Bet Size 2 */}
 															<td className="px-2 py-1 text-center align-middle">
 																<div className="text-sm text-gray-200">
-																	${bet.bet2.stake.toFixed(2)}
+																	${stake2.toFixed(2)}
 																</div>
 															</td>
 
