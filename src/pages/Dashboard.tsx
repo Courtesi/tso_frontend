@@ -3,42 +3,25 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { useSidebar } from '../contexts/SidebarContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { api, type SportsbookInfo } from '../services/api';
+import { formatOdds } from '../utils/oddsUtils';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import ArbFilters from '../components/ArbFilters';
-
-// interface BetSide {
-// 	team: string;
-// 	odds: number;
-// 	sportsbook: string;
-// 	stake: number;
-// }
-
-// interface ArbitrageBet {
-// 	id: number;
-// 	league: string;
-// 	matchup: string;
-// 	market: string;
-// 	game_time: string;
-// 	profit_percentage: number;
-// 	bet1: BetSide;
-// 	bet2: BetSide;
-// 	found_at: string;
-// 	expires_in_minutes: number;
-// }
+import PinButton from '../components/PinButton';
 
 // Cache sportsbook config at module level to avoid refetching
 let sportsbooksCache: Record<string, SportsbookInfo> | null = null;
 
 function Dashboard() {
 	const { currentUser, userTier, loading: authLoading, refreshToken } = useAuth();
-	const { arbData: bettingData, arbLoading: loading, arbError: error } = useData();
+	const { arbData: bettingData, arbLoading: loading, arbError: error, isArbStale, isPinned, pinArb, unpinArb } = useData();
 	const { isCollapsed } = useSidebar();
+	const { settings } = useSettings();
 	const navigate = useNavigate();
 	const [successMessage, setSuccessMessage] = useState('');
 	const [sportsbooks, setSportsbooks] = useState<Record<string, SportsbookInfo>>(sportsbooksCache || {});
-
 	// Fetch sportsbook config on mount
 	useEffect(() => {
 		if (sportsbooksCache) return;
@@ -167,12 +150,13 @@ function Dashboard() {
 										{/* Table Header */}
 										<thead className="border-b border-gray-400/30">
 											<tr>
+												<th className="w-[5%] px-1 py-4"></th>
 												<th className="w-[8%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Value</th>
-												<th className="w-[28%] px-2 py-4 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Game</th>
+												<th className="w-[26%] px-2 py-4 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Game</th>
 												<th className="w-[12%] px-2 py-4 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Market</th>
-												<th className="w-[28%] px-2 py-4 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Bet</th>
+												<th className="w-[27%] px-2 py-4 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Bet</th>
 												<th className="w-[12%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Bet Size</th>
-												<th className="w-[12%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Link</th>
+												<th className="w-[10%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Link</th>
 											</tr>
 										</thead>
 
@@ -183,6 +167,14 @@ function Dashboard() {
 												const rowBg = index % 2 === 0
 													? 'bg-gray-800/10 hover:bg-gray-900/20'
 													: 'bg-gray-800/10 hover:bg-gray-900/20';
+
+												// Check if this arb is pinned and/or stale
+												const isPinnedArb = isPinned(bet.id.toString());
+												const isStale = isPinnedArb && isArbStale(bet.id.toString());
+												// Golden left border for pinned arbs (amber for stale warning)
+												const pinnedBorder = isPinnedArb
+													? (isStale ? 'border-l-4 border-b-0 border-red-800' : "border-l-4 border-b-0 border-indigo-500")
+													: '';
 
 												// Format game time
 												const gameTime = new Date(bet.game_time).toLocaleString([], {
@@ -195,7 +187,23 @@ function Dashboard() {
 												return (
 													<Fragment key={bet.id}>
 														{/* First Row - Bet 1 */}
-														<tr className={`${rowBg} transition-colors border-b border-indigo-400/5 h-8`}>
+														<tr className={`${rowBg} ${pinnedBorder} transition-colors border-b border-indigo-400/5 h-8`}>
+															{/* Pin Button (spans 2 rows) */}
+															<td rowSpan={2} className="px-1 py-1 text-center align-middle">
+																<PinButton
+																	arbId={bet.id.toString()}
+																	isPinned={isPinned(bet.id.toString())}
+																	isStale={isStale}
+																	onToggle={() => {
+																		if (isPinned(bet.id.toString())) {
+																			unpinArb(bet.id.toString());
+																		} else {
+																			pinArb(bet);
+																		}
+																	}}
+																/>
+															</td>
+
 															{/* Value (spans 2 rows) */}
 															<td rowSpan={2} className="px-2 py-1 text-center border-r border-indigo-400/10 align-middle">
 																<div className="text-sm font-bold text-green-400">
@@ -209,6 +217,12 @@ function Dashboard() {
 																	{bet.matchup.replace(/_/g, ' ')} - {bet.league}
 																</div>
 																<div className="text-xs text-gray-400 mt-1">{gameTime}</div>
+																{isStale && (
+																	<div className="text-xs text-red-400 mt-1 flex items-center gap-1">
+																		<span>⚠</span>
+																		<span>May no longer be available</span>
+																	</div>
+																)}
 															</td>
 
 															{/* Market (spans 2 rows) */}
@@ -223,7 +237,7 @@ function Dashboard() {
 																<div className="text-sm text-white font-medium truncate" title={bet.bet1.team.replace(/_/g, ' ')}>
 																	{bet.bet1.team.replace(/_/g, ' ')}
 																	<span className="ml-2 px-2 py-0.5 text-xs text-gray-300">
-																		{bet.bet1.odds}
+																		{formatOdds(bet.bet1.odds, settings?.oddsFormat || 'american')}
 																	</span>
 																</div>
 															</td>
@@ -256,13 +270,13 @@ function Dashboard() {
 														</tr>
 
 														{/* Second Row - Bet 2 */}
-														<tr className={`${rowBg} transition-colors h-8`}>
+														<tr className={`${rowBg} ${pinnedBorder} transition-colors h-8`}>
 															{/* Bet 2 */}
 															<td className="px-2 py-1 align-middle">
 																<div className="text-sm text-white font-medium truncate" title={bet.bet2.team.replace(/_/g, ' ')}>
 																	{bet.bet2.team.replace(/_/g, ' ')}
 																	<span className="ml-2 px-2 py-0.5 text-xs text-gray-300">
-																		{bet.bet2.odds}
+																		{formatOdds(bet.bet2.odds, settings?.oddsFormat || 'american')}
 																	</span>
 																</div>
 															</td>

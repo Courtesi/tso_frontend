@@ -3,18 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { useSidebar } from '../contexts/SidebarContext';
-import { api, type SportsbookInfo } from '../services/api';
+import { api, type SportsbookInfo, type TierInfo } from '../services/api';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import GameLineChart from '../components/GameLineChart';
 import GameListSidebar from '../components/GameListSidebar';
 
-// Leagues available to free tier users
-const FREE_TIER_LEAGUES = ['NBA', 'NFL', 'MLB'];
-const ALL_LEAGUES = ['NBA', 'NFL', 'NHL', 'MLB', 'NCAAB', 'NCAAF'];
-
-// Cache sportsbook config at module level to avoid refetching
+// Cache configs at module level to avoid refetching
 let sportsbooksCache: Record<string, SportsbookInfo> | null = null;
+let tierConfigCache: { tiers: Record<string, TierInfo>; allLeagues: string[] } | null = null;
 
 function Charts() {
 	const { currentUser, userTier, loading: authLoading } = useAuth();
@@ -39,6 +36,8 @@ function Charts() {
 	const sportsbookDropdownRef = useRef<HTMLDivElement>(null);
 	const leagueDropdownRef = useRef<HTMLDivElement>(null);
 	const [sportsbooks, setSportsbooks] = useState<Record<string, SportsbookInfo>>(sportsbooksCache || {});
+	const [allLeagues, setAllLeagues] = useState<string[]>(tierConfigCache?.allLeagues || []);
+	const [tierConfig, setTierConfig] = useState<Record<string, TierInfo>>(tierConfigCache?.tiers || {});
 
 	// Fetch sportsbook config on mount
 	useEffect(() => {
@@ -51,6 +50,21 @@ function Charts() {
 			})
 			.catch(err => {
 				console.error('Failed to fetch sportsbooks config:', err);
+			});
+	}, []);
+
+	// Fetch tier config on mount
+	useEffect(() => {
+		if (tierConfigCache) return;
+
+		api.getTierFeatures()
+			.then(response => {
+				tierConfigCache = { tiers: response.tiers, allLeagues: response.all_leagues };
+				setTierConfig(response.tiers);
+				setAllLeagues(response.all_leagues);
+			})
+			.catch(err => {
+				console.error('Failed to fetch tier config:', err);
 			});
 	}, []);
 
@@ -104,10 +118,10 @@ function Charts() {
 				{/* Header */}
 				<div className="max-w-7xl mx-auto mb-8">
 					{/* Info banner for free users */}
-					{userTier === 'free' && (
+					{userTier === 'free' && tierConfig.free && (
 						<div className="bg-yellow-900 bg-opacity-50 border border-yellow-500 rounded-lg p-4 mb-6">
 							<p className="text-yellow-200 text-sm">
-								Free tier: NBA/NFL/MLB only, up to 10 games.{' '}
+								Free tier: {tierConfig.free.allowed_leagues?.join('/') || 'All leagues'} only, up to {tierConfig.free.max_games || 'unlimited'} games.{' '}
 								<a href="/pricing" className="underline font-semibold">
 									Upgrade to Premium
 								</a>{' '}
@@ -221,8 +235,8 @@ function Charts() {
 													>
 														All Leagues
 													</button>
-													{ALL_LEAGUES.map(league => {
-														const isLocked = userTier === 'free' && !FREE_TIER_LEAGUES.includes(league);
+													{allLeagues.map(league => {
+														const isLocked = userTier === 'free' && tierConfig.free.allowed_leagues && !tierConfig.free.allowed_leagues.includes(league);
 														return (
 															<button
 																key={league}
@@ -232,7 +246,7 @@ function Charts() {
 																		setLeagueDropdownOpen(false);
 																	}
 																}}
-																disabled={isLocked}
+																disabled={isLocked ? true : false}
 																className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-600 ${
 																	leagueFilter === league ? 'text-indigo-400 cursor-pointer' : isLocked ? 'text-gray-500 cursor-not-allowed' : 'text-white cursor-pointer'
 																}`}

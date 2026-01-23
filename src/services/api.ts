@@ -23,10 +23,15 @@ export interface TierInfo {
 	price?: string;
 	features_intro?: string;
 	features: string[];
+	// Tier limits
+	allowed_leagues: string[] | null; // null means all leagues
+	max_games: number | null; // null means unlimited
+	max_arbs: number | null; // null means unlimited
 }
 
 export interface TierFeaturesResponse {
 	tiers: Record<string, TierInfo>;
+	all_leagues: string[];
 }
 
 export interface Arbs {

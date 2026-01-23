@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import type { GameTerminalData } from '../services/api';
@@ -11,7 +11,7 @@ interface BetSide {
 	stake: number;
 }
 
-interface ArbitrageBet {
+export interface ArbitrageBet {
 	id: number;
 	league: string;
 	matchup: string;
@@ -23,6 +23,8 @@ interface ArbitrageBet {
 	found_at: string;
 	expires_in_minutes: number;
 }
+
+const PINNED_ARBS_STORAGE_KEY = 'pinnedArbs';
 
 interface DataContextType {
 	// Arbitrage data
@@ -59,9 +61,46 @@ interface DataContextType {
 
 	// WebSocket connection status
 	connectionStatus: ConnectionStatus;
+
+	// Pinned arbs
+	pinArb: (arb: ArbitrageBet) => void;
+	unpinArb: (arbId: string) => void;
+	isPinned: (arbId: string) => boolean;
+	isArbStale: (arbId: string) => boolean;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
+
+// Load pinned arbs from localStorage
+function loadPinnedArbs(): Map<string, ArbitrageBet> {
+	try {
+		const stored = localStorage.getItem(PINNED_ARBS_STORAGE_KEY);
+		if (stored) {
+			const parsed = JSON.parse(stored) as Record<string, ArbitrageBet>;
+			return new Map(Object.entries(parsed));
+		}
+	} catch (e) {
+		console.error('Failed to load pinned arbs from localStorage:', e);
+	}
+	return new Map();
+}
+
+// Save pinned arbs to localStorage
+function savePinnedArbs(pinnedArbs: Map<string, ArbitrageBet>): void {
+	try {
+		const obj = Object.fromEntries(pinnedArbs);
+		localStorage.setItem(PINNED_ARBS_STORAGE_KEY, JSON.stringify(obj));
+	} catch (e) {
+		console.error('Failed to save pinned arbs to localStorage:', e);
+	}
+}
+
+// Generate a unique fingerprint for an arb based on its content
+// Matches backend logic: event + market + sorted sportsbooks
+function getArbFingerprint(arb: ArbitrageBet): string {
+	const sportsbooks = [arb.bet1.sportsbook, arb.bet2.sportsbook].sort();
+	return `${arb.matchup}|${arb.market}|${sportsbooks[0]}|${sportsbooks[1]}`;
+}
 
 export function DataProvider({ children }: { children: ReactNode }) {
 	const { currentUser } = useAuth();
@@ -96,6 +135,54 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
 	// WebSocket connection status
 	const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
+
+	// Pinned arbs state (stores full arb objects for stale display)
+	const [pinnedArbs, setPinnedArbs] = useState<Map<string, ArbitrageBet>>(() => loadPinnedArbs());
+
+	// Ref to track current pinnedArbs for use in callbacks (avoids stale closure)
+	const pinnedArbsRef = useRef<Map<string, ArbitrageBet>>(pinnedArbs);
+
+	// Keep the ref in sync with state
+	useEffect(() => {
+		pinnedArbsRef.current = pinnedArbs;
+	}, [pinnedArbs]);
+
+	// Track last seen timestamps for pinned arbs
+	const [arbLastSeen, setArbLastSeen] = useState<Map<string, Date>>(new Map());
+
+	// Ref to track current arbLastSeen for use in callbacks (avoids stale closure)
+	const arbLastSeenRef = useRef<Map<string, Date>>(arbLastSeen);
+
+	// Keep the ref in sync with state
+	useEffect(() => {
+		arbLastSeenRef.current = arbLastSeen;
+	}, [arbLastSeen]);
+
+	// Track which pinned arbs are stale (not in latest server data)
+	const [staleArbIds, setStaleArbIds] = useState<Set<string>>(new Set());
+
+	// Pinned arbs functions
+	const pinArb = useCallback((arb: ArbitrageBet) => {
+		setPinnedArbs(prev => {
+			const next = new Map(prev);
+			next.set(arb.id.toString(), arb);
+			savePinnedArbs(next);
+			return next;
+		});
+	}, []);
+
+	const unpinArb = useCallback((arbId: string) => {
+		setPinnedArbs(prev => {
+			const next = new Map(prev);
+			next.delete(arbId);
+			savePinnedArbs(next);
+			return next;
+		});
+	}, []);
+
+	const isPinned = useCallback((arbId: string): boolean => {
+		return pinnedArbs.has(arbId);
+	}, [pinnedArbs]);
 
 	// Cache terminal data per filter combination for instant filter switching
 	const [cachedChartsData, setCachedChartsData] = useState<Map<string, {
@@ -147,7 +234,95 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		};
 
 		wsService.subscribe('arbs', filters, (data) => {
-			setArbData(data.data as ArbitrageBet[]);
+			const incomingArbs = data.data as ArbitrageBet[];
+			const currentTime = new Date();
+
+			// Update last seen timestamps for all incoming arbs (use ref to avoid stale closure)
+			const newLastSeen = new Map(arbLastSeenRef.current);
+			incomingArbs.forEach(arb => {
+				newLastSeen.set(arb.id.toString(), currentTime);
+			});
+
+			// Get current pinned arbs (use ref to avoid stale closure)
+			const currentPinnedArbs = pinnedArbsRef.current;
+
+			// Create fingerprint-based lookups
+			const incomingByFingerprint = new Map<string, ArbitrageBet>();
+			incomingArbs.forEach(arb => {
+				incomingByFingerprint.set(getArbFingerprint(arb), arb);
+			});
+
+			const pinnedByFingerprint = new Map<string, ArbitrageBet>();
+			Array.from(currentPinnedArbs.values()).forEach(arb => {
+				pinnedByFingerprint.set(getArbFingerprint(arb), arb);
+			});
+
+			// Categorize by fingerprint (mutually exclusive)
+			const freshPinnedArbs: ArbitrageBet[] = [];
+			const stalePinnedArbs: ArbitrageBet[] = [];
+			const unpinnedArbs: ArbitrageBet[] = [];
+			let pinnedArbsUpdated = false;
+
+			// Check each pinned arb - is it in incoming?
+			pinnedByFingerprint.forEach((pinnedArb, fingerprint) => {
+				const incomingArb = incomingByFingerprint.get(fingerprint);
+				if (incomingArb) {
+					// Arb exists in both - use fresh data, mark as pinned
+					freshPinnedArbs.push(incomingArb);
+					// Update the stored pinned arb with fresh data (including new ID if changed)
+					if (pinnedArb.id !== incomingArb.id) {
+						currentPinnedArbs.delete(pinnedArb.id.toString());
+					}
+					currentPinnedArbs.set(incomingArb.id.toString(), incomingArb);
+					pinnedArbsUpdated = true;
+				} else {
+					// Arb only in pinned - it's stale
+					stalePinnedArbs.push(pinnedArb);
+				}
+			});
+
+			// Check incoming arbs that aren't pinned
+			incomingByFingerprint.forEach((arb, fingerprint) => {
+				if (!pinnedByFingerprint.has(fingerprint)) {
+					unpinnedArbs.push(arb);
+				}
+			});
+
+			// Save updated pinned arbs if we refreshed any with new data
+			if (pinnedArbsUpdated) {
+				savePinnedArbs(currentPinnedArbs);
+				setPinnedArbs(new Map(currentPinnedArbs));
+			}
+
+			// Auto-unpin stale arbs older than 30 minutes
+			const staleThreshold = 30 * 60 * 1000; // 30 minutes in milliseconds
+			const autoUnpinIds: string[] = [];
+
+			stalePinnedArbs.forEach(arb => {
+				const lastSeen = newLastSeen.get(arb.id.toString());
+				if (lastSeen && (currentTime.getTime() - lastSeen.getTime()) > staleThreshold) {
+					autoUnpinIds.push(arb.id.toString());
+				}
+			});
+
+			// Remove auto-unpinned IDs
+			if (autoUnpinIds.length > 0) {
+				autoUnpinIds.forEach(id => unpinArb(id));
+			}
+
+			// Track which pinned arbs are stale
+			const remainingStalePinned = stalePinnedArbs.filter(arb => !autoUnpinIds.includes(arb.id.toString()));
+			setStaleArbIds(new Set(remainingStalePinned.map(arb => arb.id.toString())));
+
+			// Merge and sort: fresh pinned → stale pinned → unpinned
+			const sortedData = [
+				...freshPinnedArbs.sort((a, b) => b.profit_percentage - a.profit_percentage),
+				...remainingStalePinned,
+				...unpinnedArbs.sort((a, b) => b.profit_percentage - a.profit_percentage)
+			];
+
+			setArbData(sortedData);
+			setArbLastSeen(newLastSeen);
 			setArbError('');
 			setArbLoading(false);
 		});
@@ -269,6 +444,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		return () => clearTimeout(timeoutId);
 	}, [arbLeagueFilter, arbMinProfitFilter, arbMaxProfitFilter, arbMarketTypeFilter, arbSportsbookFilter, connectionStatus, shouldFetchArbs]);
 
+	// Helper function to check if a pinned arb is stale (not in latest incoming data)
+	const isArbStale = useCallback((arbId: string): boolean => {
+		return staleArbIds.has(arbId);
+	}, [staleArbIds]);
+
 	const value = {
 		arbData,
 		arbLoading,
@@ -295,6 +475,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		arbSportsbookFilter,
 		setArbSportsbookFilter,
 		connectionStatus,
+		pinArb,
+		unpinArb,
+		isPinned,
+		isArbStale,
 	};
 
 	return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

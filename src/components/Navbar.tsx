@@ -20,8 +20,9 @@ function Navbar({ onAuthModalOpen }: NavbarProps) {
 	const isDashboard = location.pathname === '/dashboard';
 	const isTerminal = location.pathname === '/charts';
 	const isPricing = location.pathname === '/pricing';
+	const isSettings = location.pathname === '/settings';
 	const isHome = location.pathname === '/';
-	const isUserPage = isDashboard || isTerminal;
+	const isUserPage = isDashboard || isTerminal || isSettings;
 
 	return (
 		<div className={`bg-indigo-900 ${isUserPage ? 'md:bg-gray-900 border-b-1 border-gray-700' : 'md:bg-transparent'} justify-center fixed top-0 left-0 right-0 z-30 h-17`}>
