@@ -13,7 +13,7 @@ interface OddsScreenProps {
 
 /**
  * Calculate the background color based on odds change.
- * Green for increase, red for decrease. Very subtle intensity.
+ * Green for increase, red for decrease. Subtle intensity on dark gray background.
  */
 function getOddsChangeColor(currentOdds: number, previousOdds: number): string {
 	const change = currentOdds - previousOdds;
@@ -22,16 +22,16 @@ function getOddsChangeColor(currentOdds: number, previousOdds: number): string {
 	// Positive change = odds went up (green), negative = went down (red)
 	const isPositiveChange = change > 0;
 
-	// Calculate very subtle intensity (0-1) based on magnitude
+	// Calculate subtle intensity (0-1) based on magnitude
 	const absChange = Math.abs(change);
 	const intensity = Math.min(absChange / 30, 1); // Cap at 30 units for max intensity
 
-	// HSL color with very subtle saturation and high lightness
-	// Green: hsl(120, 20-40%, 90-75%)
-	// Red: hsl(0, 20-40%, 90-75%)
+	// HSL color tuned for dark gray background (bg-gray-700/50 ~ lightness 25-30%)
+	// Green: hsl(120, 25-50%, 20-30%)
+	// Red: hsl(0, 25-50%, 20-30%)
 	const hue = isPositiveChange ? 120 : 0;
-	const saturation = 20 + intensity * 20; // 20% to 40%
-	const lightness = 90 - intensity * 15; // 90% (very subtle) to 75% (still subtle)
+	const saturation = 25 + intensity * 25; // 25% to 50%
+	const lightness = 20 + intensity * 10; // 20% (subtle) to 30% (more visible)
 
 	return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
@@ -86,7 +86,8 @@ function formatTime(dateString: string): string {
 interface OddsRowProps {
 	outcome: OutcomeLine;
 	sportsbooks: string[];
-	showDate: boolean;
+	isFirstRow: boolean;
+	totalRows: number;
 	gameStartTime: string;
 	teamName: string;
 	oddsFormat: OddsFormat;
@@ -95,7 +96,8 @@ interface OddsRowProps {
 function OddsRow({
 	outcome,
 	sportsbooks,
-	showDate,
+	isFirstRow,
+	totalRows,
 	gameStartTime,
 	teamName,
 	oddsFormat,
@@ -106,19 +108,26 @@ function OddsRow({
 
 	return (
 		<tr className="border-b border-gray-600/50 last:border-b-0">
-			{/* First column - date (first row only) and team name */}
+			{/* First column - team name */}
 			<td className="px-2 py-2 text-sm text-gray-200 min-w-[100px]">
-				{showDate && formattedDate && (
-					<div className="mb-1">
-						<span className="font-medium text-xs text-gray-300">{formattedDate}</span>
-						<span className="text-xs text-gray-500 ml-1">{formattedTime}</span>
-					</div>
-				)}
-				<div className="text-xs text-gray-400 truncate" title={teamName}>{teamName}</div>
+				<div className="text-xs text-gray-300 truncate font-medium" title={teamName}>{teamName}</div>
 			</td>
 
+			{/* Second column - date/time spanning all rows (only rendered on first row) */}
+			{isFirstRow && (
+				<td
+					className="px-2 py-2 text-center min-w-[70px] border-l border-gray-600/50"
+					rowSpan={totalRows}
+				>
+					<div className="flex flex-col items-center justify-center h-full">
+						<span className="font-medium text-xs text-gray-300">{formattedDate}</span>
+						<span className="text-xs text-gray-500">{formattedTime}</span>
+					</div>
+				</td>
+			)}
+
 			{/* Average column */}
-			<td className="px-2 py-2 text-center min-w-[60px]">
+			<td className="px-2 py-2 text-center min-w-[60px] border-l border-gray-600/50">
 				{average !== null ? (
 					<span className="font-bold text-white text-sm">
 						{formatOdds(average, oddsFormat)}
@@ -219,16 +228,20 @@ function OddsScreen({ game, outcomes }: OddsScreenProps) {
 	}
 
 	return (
-		<div className="bg-gray-700/50 rounded-lg overflow-hidden">
+		<div className="bg-gray-700/50 rounded-lg">
 			<div className="overflow-x-auto">
-				<table className="w-full">
+				<table className="min-w-full">
 					<thead>
 						<tr className="border-b border-gray-600">
-							{/* Empty header for first column (date/team) */}
+							{/* Header for team column */}
 							<th className="px-2 py-2 text-left text-xs font-semibold text-gray-300 min-w-[100px]">
 								{/* No header text */}
 							</th>
-							<th className="px-2 py-2 text-center text-xs font-semibold text-gray-300 min-w-[60px]">
+							{/* Header for date column */}
+							<th className="px-2 py-2 text-center text-xs font-semibold text-gray-300 min-w-[70px] border-l border-gray-600/50">
+								Date
+							</th>
+							<th className="px-2 py-2 text-center text-xs font-semibold text-gray-300 min-w-[60px] border-l border-gray-600/50">
 								Avg
 							</th>
 							{allSportsbooks.map(book => {
@@ -261,7 +274,8 @@ function OddsScreen({ game, outcomes }: OddsScreenProps) {
 								key={outcome.outcome_id}
 								outcome={outcome}
 								sportsbooks={allSportsbooks}
-								showDate={index === 0}
+								isFirstRow={index === 0}
+								totalRows={outcomes.length}
 								gameStartTime={game.start_time}
 								teamName={getTeamName(outcome)}
 								oddsFormat={oddsFormat}
