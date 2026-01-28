@@ -21,11 +21,12 @@ function Navbar({ onAuthModalOpen }: NavbarProps) {
 	const isTerminal = location.pathname === '/charts';
 	const isPricing = location.pathname === '/pricing';
 	const isSettings = location.pathname === '/settings';
+	const isEvBets = location.pathname === '/ev-bets';
 	const isHome = location.pathname === '/';
-	const isUserPage = isDashboard || isTerminal || isSettings;
+	const isUserPage = isDashboard || isTerminal || isSettings || isEvBets;
 
 	return (
-		<div className={`bg-indigo-900 ${isUserPage ? 'md:bg-gray-900 border-b-1 border-gray-700' : 'md:bg-transparent'} justify-center fixed top-0 left-0 right-0 z-30 h-17`}>
+		<div className={`bg-indigo-900 ${isUserPage ? 'bg-slate-900 md:bg-gray-950 border-b-1 border-gray-700' : 'md:bg-transparent'} justify-center fixed top-0 left-0 right-0 z-30 h-17`}>
 			{/* Floating Logo - stays fixed on screen */}
 			<div className="fixed top-5 md:top-4 left-6 z-40">
 				<button

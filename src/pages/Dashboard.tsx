@@ -82,7 +82,7 @@ function Dashboard() {
 	}
 
 	return (
-		<div className="min-h-screen text-white relative bg-zinc-800">
+		<div className="min-h-screen text-white relative bg-black">
 
 			<Navbar/>
 			<Sidebar />
@@ -128,7 +128,7 @@ function Dashboard() {
 				)}
 
 				{/* Data Display */}
-				<div className="max-w-7xl mx-auto bg-gray-800">
+				<div className="max-w-7xl mx-auto bg-black border-2 border-gray-700 rounded-lg p-4">
 					{loading && (
 						<div className="text-center text-gray-400 py-12">
 							Loading arbitrage opportunities...
@@ -148,7 +148,7 @@ function Dashboard() {
 								<div className="overflow-x-auto">
 									<table className="w-full table-fixed">
 										{/* Table Header */}
-										<thead className="border-b border-gray-400/30">
+										<thead className="border-b border-gray-400/50">
 											<tr>
 												<th className="w-[5%] px-1 py-4"></th>
 												<th className="w-[8%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Value</th>
@@ -326,7 +326,7 @@ function Dashboard() {
 					)}
 
 					{!loading && !error && bettingData.length === 0 && (
-						<div className="bg-gradient-to-br from-indigo-400/40 via-indigo-500/30 to-indigo-400/30 backdrop-blur-md border border-indigo-500/10 shadow-xl rounded-lg p-12 text-center">
+						<div className="bg-gray-950 border border-gray-600 shadow-xl rounded-lg p-12 text-center">
 							<p className="text-gray-300 text-lg">No arbitrage opportunities available at this time.</p>
 						</div>
 					)}

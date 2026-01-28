@@ -118,7 +118,7 @@ function Settings() {
 	}
 
 	return (
-		<div className="min-h-screen text-white relative bg-zinc-800">
+		<div className="min-h-screen text-white relative bg-black">
 			<Navbar />
 			<Sidebar />
 
@@ -129,7 +129,7 @@ function Settings() {
 
 					{/* Success Message */}
 					{successMessage && (
-						<div className="mb-6 bg-gradient-to-r from-green-900/50 to-emerald-900/50 border border-green-500 rounded-lg p-4">
+						<div className="mb-6 bg-green-800 border border-green-500 rounded-lg p-4">
 							<div className="flex items-center justify-between">
 								<p className="text-green-100">{successMessage}</p>
 								<button
@@ -158,10 +158,10 @@ function Settings() {
 					)}
 
 					{/* Settings Form */}
-					<div className="bg-gray-800 rounded-lg border border-gray-700 p-6 space-y-6">
+					<div className="bg-gray-950 rounded-lg border border-gray-600 p-6 space-y-6">
 						{/* Bankroll */}
 						<div>
-							<label className="block text-sm font-medium text-gray-300 mb-2">
+							<label className="block text-sm font-medium text-gray-100 mb-2">
 								Bankroll
 							</label>
 							<div className="relative">
@@ -173,24 +173,24 @@ function Settings() {
 									placeholder="1000"
 									min="0"
 									step="0.01"
-									className="w-full pl-8 pr-4 py-3 bg-gray-700 text-white border border-gray-600 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors"
+									className="w-full pl-8 pr-4 py-3 bg-gray-900 text-white border border-gray-600 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors"
 								/>
 							</div>
-							<p className="mt-1 text-xs text-gray-500">
+							<p className="mt-1 text-xs text-gray-400">
 								Your total betting bankroll for calculating stake sizes
 							</p>
 						</div>
 
 						{/* Kelly Fraction */}
 						<div>
-							<label className="block text-sm font-medium text-gray-300 mb-2">
+							<label className="block text-sm font-medium text-gray-100 mb-2">
 								Kelly Criterion Fraction
 							</label>
 							<div className="space-y-3">
 								<select
 									value={isCustomKelly ? -1 : kellyFraction}
 									onChange={(e) => handleKellyChange(parseFloat(e.target.value))}
-									className="w-full px-4 py-3 bg-gray-700 text-white border border-gray-600 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
+									className="w-full px-4 py-3 bg-gray-900 text-white border border-gray-600 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
 								>
 									{KELLY_PRESETS.map((preset) => (
 										<option key={preset.value} value={preset.value}>
@@ -208,24 +208,24 @@ function Settings() {
 										min="0"
 										max="1"
 										step="0.01"
-										className="w-full px-4 py-3 bg-gray-700 text-white border border-gray-600 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors"
+										className="w-full px-4 py-3 bg-gray-900 text-white border border-gray-600 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors"
 									/>
 								)}
 							</div>
-							<p className="mt-1 text-xs text-gray-500">
+							<p className="mt-1 text-xs text-gray-400">
 								Fraction of Kelly criterion to use. Quarter Kelly (0.25) is a conservative choice.
 							</p>
 						</div>
 
 						{/* Odds Format */}
 						<div>
-							<label className="block text-sm font-medium text-gray-300 mb-2">
+							<label className="block text-sm font-medium text-gray-100 mb-2">
 								Odds Display Format
 							</label>
 							<select
 								value={oddsFormat}
 								onChange={(e) => setOddsFormat(e.target.value as OddsFormat)}
-								className="w-full px-4 py-3 bg-gray-700 text-white border border-gray-600 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
+								className="w-full px-4 py-3 bg-gray-900 text-white border border-gray-600 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
 							>
 								{ODDS_FORMATS.map((format) => (
 									<option key={format.value} value={format.value}>
@@ -233,7 +233,7 @@ function Settings() {
 									</option>
 								))}
 							</select>
-							<p className="mt-1 text-xs text-gray-500">
+							<p className="mt-1 text-xs text-gray-400">
 								How odds are displayed throughout the app
 							</p>
 						</div>

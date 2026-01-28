@@ -8,45 +8,38 @@ import { useData } from '../contexts/DataContext';
 const FREE_TIER_LEAGUES = ['NBA', 'NFL', 'MLB'];
 const ALL_LEAGUES = ['NBA', 'NFL', 'NHL', 'MLB', 'NCAAB', 'NCAAF'];
 
-// Market types (matches production values)
-const MARKET_TYPES = [
-	{ value: 'MONEY', label: 'Moneyline' },
-	{ value: 'SPREAD', label: 'Spread' },
-	{ value: 'TOTAL', label: 'Total' }
-];
+// Confidence levels
+const CONFIDENCE_LEVELS = ['HIGH', 'MEDIUM', 'LOW'];
 
-// Available sportsbooks
-const SPORTSBOOKS = ['draftkings', 'fanduel', 'betmgm', 'caesars', 'fliff', 'novig', 'prophetx', 'kalshi'];
+// Available sportsbooks (excluding prediction markets)
+const SPORTSBOOKS = ['draftkings', 'fanduel', 'betmgm', 'caesars', 'fliff', 'novig', 'prophetx', 'espnbet'];
 
-// Profit range constants
-const MIN_PROFIT = 0;
-const MAX_PROFIT = 20;
+// EV range constants
+const MIN_EV = 0;
+const MAX_EV = 20;
 
-function ArbFilters() {
+function EVFilters() {
 	const { userTier } = useAuth();
 	const {
-		arbLeagueFilter,
-		setArbLeagueFilter,
-		arbMinProfitFilter,
-		setArbMinProfitFilter,
-		arbMaxProfitFilter,
-		setArbMaxProfitFilter,
-		arbMarketTypeFilter,
-		setArbMarketTypeFilter,
-		arbSportsbookFilter,
-		setArbSportsbookFilter
+		evLeagueFilter,
+		setEvLeagueFilter,
+		evMinEvFilter,
+		setEvMinEvFilter,
+		evConfidenceFilter,
+		setEvConfidenceFilter,
+		evSportsbookFilter,
+		setEvSportsbookFilter
 	} = useData();
 
 	const [sportsbookDropdownOpen, setSportsbookDropdownOpen] = useState(false);
-	const [marketTypeDropdownOpen, setMarketTypeDropdownOpen] = useState(false);
+	const [confidenceDropdownOpen, setConfidenceDropdownOpen] = useState(false);
 	const [leagueDropdownOpen, setLeagueDropdownOpen] = useState(false);
 	const sportsbookDropdownRef = useRef<HTMLDivElement>(null);
-	const marketTypeDropdownRef = useRef<HTMLDivElement>(null);
+	const confidenceDropdownRef = useRef<HTMLDivElement>(null);
 	const leagueDropdownRef = useRef<HTMLDivElement>(null);
 
-	// Slider values
-	const minValue = arbMinProfitFilter ?? MIN_PROFIT;
-	const maxValue = arbMaxProfitFilter ?? MAX_PROFIT;
+	// Slider value
+	const minValue = evMinEvFilter ?? MIN_EV;
 
 	// Close dropdowns when clicking outside
 	useEffect(() => {
@@ -54,8 +47,8 @@ function ArbFilters() {
 			if (sportsbookDropdownRef.current && !sportsbookDropdownRef.current.contains(event.target as Node)) {
 				setSportsbookDropdownOpen(false);
 			}
-			if (marketTypeDropdownRef.current && !marketTypeDropdownRef.current.contains(event.target as Node)) {
-				setMarketTypeDropdownOpen(false);
+			if (confidenceDropdownRef.current && !confidenceDropdownRef.current.contains(event.target as Node)) {
+				setConfidenceDropdownOpen(false);
 			}
 			if (leagueDropdownRef.current && !leagueDropdownRef.current.contains(event.target as Node)) {
 				setLeagueDropdownOpen(false);
@@ -66,56 +59,50 @@ function ArbFilters() {
 		return () => document.removeEventListener('mousedown', handleClickOutside);
 	}, []);
 
-	const handleSliderChange = (values: number | number[]) => {
-		if (Array.isArray(values)) {
-			setArbMinProfitFilter(values[0]);
-			if (values[1] >= MAX_PROFIT) {
-				setArbMaxProfitFilter(null); // null means no upper limit
-			} else {
-				setArbMaxProfitFilter(values[1]);
-			}
+	const handleSliderChange = (value: number | number[]) => {
+		if (typeof value === 'number') {
+			setEvMinEvFilter(value);
 		}
 	};
 
-	const handleMarketTypeToggle = (marketType: string) => {
-		if (arbMarketTypeFilter.includes(marketType)) {
-			setArbMarketTypeFilter(arbMarketTypeFilter.filter(m => m !== marketType));
+	const handleConfidenceToggle = (confidence: string) => {
+		if (evConfidenceFilter.includes(confidence)) {
+			setEvConfidenceFilter(evConfidenceFilter.filter(c => c !== confidence));
 		} else {
-			setArbMarketTypeFilter([...arbMarketTypeFilter, marketType]);
+			setEvConfidenceFilter([...evConfidenceFilter, confidence]);
 		}
 	};
 
 	const handleSportsbookToggle = (sportsbook: string) => {
-		if (arbSportsbookFilter.includes(sportsbook)) {
-			setArbSportsbookFilter(arbSportsbookFilter.filter(s => s !== sportsbook));
+		if (evSportsbookFilter.includes(sportsbook)) {
+			setEvSportsbookFilter(evSportsbookFilter.filter(s => s !== sportsbook));
 		} else {
-			setArbSportsbookFilter([...arbSportsbookFilter, sportsbook]);
+			setEvSportsbookFilter([...evSportsbookFilter, sportsbook]);
 		}
 	};
 
 	const handleLeagueToggle = (league: string) => {
-		if (arbLeagueFilter.includes(league)) {
-			setArbLeagueFilter(arbLeagueFilter.filter(l => l !== league));
+		if (evLeagueFilter.includes(league)) {
+			setEvLeagueFilter(evLeagueFilter.filter(l => l !== league));
 		} else {
-			setArbLeagueFilter([...arbLeagueFilter, league]);
+			setEvLeagueFilter([...evLeagueFilter, league]);
 		}
 	};
 
 	return (
 		<div className="bg-black border-2 border-gray-700 rounded-lg p-4 mb-6">
 			<div className="flex flex-wrap items-start gap-4">
-				{/* Profit Range Slider */}
-				<div className="flex flex-col min-w-[200px]">
+				{/* Min EV Slider */}
+				<div className="flex flex-col min-w-[180px]">
 					<label className="text-sm text-gray-200 mb-1">
-						Profit Range: {minValue.toFixed(1)}% - {arbMaxProfitFilter === null ? 'Max' : `${maxValue.toFixed(1)}%`}
+						Min EV: {minValue.toFixed(1)}%
 					</label>
 					<div className="pt-1 pb-2">
 						<Slider
-							range
-							min={MIN_PROFIT}
-							max={MAX_PROFIT}
-							step={0.1}
-							value={[minValue, maxValue]}
+							min={MIN_EV}
+							max={MAX_EV}
+							step={0.5}
+							value={minValue}
 							onChange={handleSliderChange}
 							styles={{
 								track: { backgroundColor: '#6366f1', height: 6 },
@@ -133,6 +120,67 @@ function ArbFilters() {
 					</div>
 				</div>
 
+				{/* Confidence Filter */}
+				<div className="flex flex-col relative" ref={confidenceDropdownRef}>
+					<label className="text-sm text-gray-200 mb-1">Confidence</label>
+					<button
+						onClick={(e) => {
+							e.stopPropagation();
+							setConfidenceDropdownOpen(!confidenceDropdownOpen);
+						}}
+						className="bg-gray-950 border border-gray-600 text-white px-3 py-2 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between min-w-[130px]"
+					>
+						<span>
+							{evConfidenceFilter.length === 0
+								? 'All Levels'
+								: `${evConfidenceFilter.length} selected`}
+						</span>
+						<svg
+							className={`w-4 h-4 ml-2 transition-transform ${confidenceDropdownOpen ? 'rotate-180' : ''}`}
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+						</svg>
+					</button>
+
+					{confidenceDropdownOpen && (
+						<div className="absolute top-full left-0 mt-1 bg-gray-900 rounded-lg shadow-lg z-50 min-w-[140px]">
+							{evConfidenceFilter.length > 0 && (
+								<button
+									onClick={() => setEvConfidenceFilter([])}
+									className="w-full text-left px-3 py-2 text-xs text-indigo-400 hover:text-indigo-300 border-b border-gray-600 cursor-pointer"
+								>
+									Clear all
+								</button>
+							)}
+							<div className="py-1">
+								{CONFIDENCE_LEVELS.map(level => (
+									<label
+										key={level}
+										className="flex items-center gap-2 cursor-pointer hover:bg-gray-800 px-3 py-2"
+									>
+										<input
+											type="checkbox"
+											checked={evConfidenceFilter.includes(level)}
+											onChange={() => handleConfidenceToggle(level)}
+											className="w-4 h-4 text-indigo-600 bg-gray-800 border-gray-600 rounded focus:ring-indigo-500"
+										/>
+										<span className={`text-sm ${
+											level === 'HIGH' ? 'text-green-400' :
+											level === 'MEDIUM' ? 'text-yellow-400' :
+											'text-red-400'
+										}`}>
+											{level}
+										</span>
+									</label>
+								))}
+							</div>
+						</div>
+					)}
+				</div>
+
 				{/* League Filter */}
 				<div className="flex flex-col relative" ref={leagueDropdownRef}>
 					<label className="text-sm text-gray-200 mb-1">Leagues</label>
@@ -144,9 +192,9 @@ function ArbFilters() {
 						className="bg-gray-950 border border-gray-600 text-white px-3 py-2 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between min-w-[120px]"
 					>
 						<span>
-							{arbLeagueFilter.length === 0
+							{evLeagueFilter.length === 0
 								? 'All Leagues'
-								: `${arbLeagueFilter.length} selected`}
+								: `${evLeagueFilter.length} selected`}
 						</span>
 						<svg
 							className={`w-4 h-4 ml-2 transition-transform ${leagueDropdownOpen ? 'rotate-180' : ''}`}
@@ -159,16 +207,16 @@ function ArbFilters() {
 					</button>
 
 					{leagueDropdownOpen && (
-						<div className="absolute top-full left-0 mt-1 bg-gray-700 rounded-lg shadow-lg z-50 min-w-[140px]">
-							{arbLeagueFilter.length > 0 && (
+						<div className="absolute top-full left-0 mt-1 bg-gray-900 rounded-lg shadow-lg z-50 min-w-[140px]">
+							{evLeagueFilter.length > 0 && (
 								<button
-									onClick={() => setArbLeagueFilter([])}
-									className="w-full text-left px-3 py-2 text-xs text-indigo-400 hover:text-indigo-300 bg-gray-900 hover:bg-gray-900 border-b border-gray-600 cursor-pointer"
+									onClick={() => setEvLeagueFilter([])}
+									className="w-full text-left px-3 py-2 text-xs text-indigo-400 hover:text-indigo-300 border-b border-gray-600 cursor-pointer"
 								>
 									Clear all
 								</button>
 							)}
-							<div className="py-1 bg-gray-900">
+							<div className="py-1">
 								{ALL_LEAGUES.map(league => {
 									const isLocked = userTier === 'free' && !FREE_TIER_LEAGUES.includes(league);
 									return (
@@ -180,10 +228,10 @@ function ArbFilters() {
 										>
 											<input
 												type="checkbox"
-												checked={arbLeagueFilter.includes(league)}
+												checked={evLeagueFilter.includes(league)}
 												onChange={() => !isLocked && handleLeagueToggle(league)}
 												disabled={isLocked}
-												className="w-4 h-4 text-indigo-600 border-gray-600 rounded focus:ring-indigo-500"
+												className="w-4 h-4 text-indigo-600 bg-gray-800 border-gray-600 rounded focus:ring-indigo-500"
 											/>
 											<span className={`text-sm ${isLocked ? 'text-gray-500' : 'text-white'}`}>
 												{league}{isLocked ? ' (Premium)' : ''}
@@ -191,58 +239,6 @@ function ArbFilters() {
 										</label>
 									);
 								})}
-							</div>
-						</div>
-					)}
-				</div>
-
-				{/* Market Type Filter */}
-				<div className="flex flex-col relative" ref={marketTypeDropdownRef}>
-					<label className="text-sm text-gray-200 mb-1">Market Type</label>
-					<button
-						onClick={() => setMarketTypeDropdownOpen(!marketTypeDropdownOpen)}
-						className="bg-gray-950 border border-gray-600 text-white px-3 py-2 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between min-w-[140px]"
-					>
-						<span>
-							{arbMarketTypeFilter.length === 0
-								? 'All Markets'
-								: `${arbMarketTypeFilter.length} selected`}
-						</span>
-						<svg
-							className={`w-4 h-4 ml-2 transition-transform ${marketTypeDropdownOpen ? 'rotate-180' : ''}`}
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-						</svg>
-					</button>
-
-					{marketTypeDropdownOpen && (
-						<div className="absolute top-full left-0 mt-1 bg-gray-900 rounded-lg shadow-lg z-50 min-w-[160px]">
-							{arbMarketTypeFilter.length > 0 && (
-								<button
-									onClick={() => setArbMarketTypeFilter([])}
-									className="w-full text-left px-3 py-2 text-xs text-indigo-400 hover:text-indigo-300 border-b border-gray-600 cursor-pointer"
-								>
-									Clear all
-								</button>
-							)}
-							<div className="py-1">
-								{MARKET_TYPES.map(market => (
-									<label
-										key={market.value}
-										className="flex items-center gap-2 cursor-pointer hover:bg-gray-800 px-3 py-2"
-									>
-										<input
-											type="checkbox"
-											checked={arbMarketTypeFilter.includes(market.value)}
-											onChange={() => handleMarketTypeToggle(market.value)}
-											className="w-4 h-4 text-indigo-600 bg-gray-800 rounded focus:ring-indigo-500"
-										/>
-										<span className="text-sm text-white">{market.label}</span>
-									</label>
-								))}
 							</div>
 						</div>
 					)}
@@ -256,9 +252,9 @@ function ArbFilters() {
 						className="bg-gray-950 border border-gray-600 text-white px-3 py-2 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between min-w-[160px]"
 					>
 						<span>
-							{arbSportsbookFilter.length === 0
+							{evSportsbookFilter.length === 0
 								? 'All Sportsbooks'
-								: `${arbSportsbookFilter.length} selected`}
+								: `${evSportsbookFilter.length} selected`}
 						</span>
 						<svg
 							className={`w-4 h-4 ml-2 transition-transform ${sportsbookDropdownOpen ? 'rotate-180' : ''}`}
@@ -272,9 +268,9 @@ function ArbFilters() {
 
 					{sportsbookDropdownOpen && (
 						<div className="absolute top-full left-0 mt-1 bg-gray-900 rounded-lg shadow-lg z-50 min-w-[180px]">
-							{arbSportsbookFilter.length > 0 && (
+							{evSportsbookFilter.length > 0 && (
 								<button
-									onClick={() => setArbSportsbookFilter([])}
+									onClick={() => setEvSportsbookFilter([])}
 									className="w-full text-left px-3 py-2 text-xs text-indigo-400 hover:text-indigo-300 border-b border-gray-600 cursor-pointer"
 								>
 									Clear all
@@ -288,7 +284,7 @@ function ArbFilters() {
 									>
 										<input
 											type="checkbox"
-											checked={arbSportsbookFilter.includes(sb)}
+											checked={evSportsbookFilter.includes(sb)}
 											onChange={() => handleSportsbookToggle(sb)}
 											className="w-4 h-4 text-indigo-600 bg-gray-800 border-gray-600 rounded focus:ring-indigo-500"
 										/>
@@ -304,4 +300,4 @@ function ArbFilters() {
 	);
 }
 
-export default ArbFilters;
+export default EVFilters;

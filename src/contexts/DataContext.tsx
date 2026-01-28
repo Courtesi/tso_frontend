@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import type { GameTerminalData } from '../services/api';
+import type { GameTerminalData, EVBet } from '../services/api';
 import { wsService, type ConnectionStatus, type FilterOptions } from '../services/websocket';
 
 interface BetSide {
@@ -39,17 +39,22 @@ interface DataContextType {
 	selectedGame: GameTerminalData | null;
 	setSelectedGame: (game: GameTerminalData | null) => void;
 
+	// EV data
+	evData: EVBet[];
+	evLoading: boolean;
+	evError: string;
+
 	// Filters for charts
-	leagueFilter: string;
-	setLeagueFilter: (league: string) => void;
+	leagueFilter: string[];
+	setLeagueFilter: (leagues: string[]) => void;
 	gameTimeFilter: string;
 	setGameTimeFilter: (gameTime: string) => void;
 	sportsbookFilter: string[];
 	setSportsbookFilter: (sportsbooks: string[]) => void;
 
 	// Arb-specific filters
-	arbLeagueFilter: string;
-	setArbLeagueFilter: (league: string) => void;
+	arbLeagueFilter: string[];
+	setArbLeagueFilter: (leagues: string[]) => void;
 	arbMinProfitFilter: number | null;
 	setArbMinProfitFilter: (minProfit: number | null) => void;
 	arbMaxProfitFilter: number | null;
@@ -58,6 +63,16 @@ interface DataContextType {
 	setArbMarketTypeFilter: (marketTypes: string[]) => void;
 	arbSportsbookFilter: string[];
 	setArbSportsbookFilter: (sportsbooks: string[]) => void;
+
+	// EV-specific filters
+	evLeagueFilter: string[];
+	setEvLeagueFilter: (leagues: string[]) => void;
+	evMinEvFilter: number | null;
+	setEvMinEvFilter: (minEv: number | null) => void;
+	evConfidenceFilter: string[];
+	setEvConfidenceFilter: (confidence: string[]) => void;
+	evSportsbookFilter: string[];
+	setEvSportsbookFilter: (sportsbooks: string[]) => void;
 
 	// WebSocket connection status
 	connectionStatus: ConnectionStatus;
@@ -109,6 +124,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 	// Determine which data streams should be active based on current route
 	const shouldFetchArbs = location.pathname === '/dashboard';
 	const shouldFetchCharts = location.pathname === '/charts';
+	const shouldFetchEv = location.pathname === '/ev-bets';
 
 	// Arbitrage state
 	const [arbData, setArbData] = useState<ArbitrageBet[]>([]);
@@ -121,17 +137,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
 	const [chartsError, setChartsError] = useState('');
 	const [selectedGame, setSelectedGame] = useState<GameTerminalData | null>(null);
 
+	// EV state
+	const [evData, setEvData] = useState<EVBet[]>([]);
+	const [evLoading, setEvLoading] = useState(false);
+	const [evError, setEvError] = useState('');
+
 	// Filters for charts
-	const [leagueFilter, setLeagueFilter] = useState<string>('');
+	const [leagueFilter, setLeagueFilter] = useState<string[]>([]);
 	const [gameTimeFilter, setGameTimeFilter] = useState<string>('upcoming');
 	const [sportsbookFilter, setSportsbookFilter] = useState<string[]>([]);
 
 	// Arb-specific filters
-	const [arbLeagueFilter, setArbLeagueFilter] = useState<string>('');
+	const [arbLeagueFilter, setArbLeagueFilter] = useState<string[]>([]);
 	const [arbMinProfitFilter, setArbMinProfitFilter] = useState<number | null>(0);
 	const [arbMaxProfitFilter, setArbMaxProfitFilter] = useState<number | null>(null);
 	const [arbMarketTypeFilter, setArbMarketTypeFilter] = useState<string[]>([]);
 	const [arbSportsbookFilter, setArbSportsbookFilter] = useState<string[]>([]);
+
+	// EV-specific filters
+	const [evLeagueFilter, setEvLeagueFilter] = useState<string[]>([]);
+	const [evMinEvFilter, setEvMinEvFilter] = useState<number | null>(0);
+	const [evConfidenceFilter, setEvConfidenceFilter] = useState<string[]>([]);
+	const [evSportsbookFilter, setEvSportsbookFilter] = useState<string[]>([]);
 
 	// WebSocket connection status
 	const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
@@ -229,7 +256,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 			sportsbooks: arbSportsbookFilter.length > 0 ? arbSportsbookFilter : null,
 			min_profit: arbMinProfitFilter,
 			max_profit: arbMaxProfitFilter,
-			league: arbLeagueFilter || null,
+			league: arbLeagueFilter.length > 0 ? arbLeagueFilter : null,
 			market_type: arbMarketTypeFilter.length > 0 ? arbMarketTypeFilter : null
 		};
 
@@ -347,7 +374,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		});
 
 		// Check cache and show immediately if available and fresh
-		const cacheKey = `${leagueFilter || 'all'}:${gameTimeFilter || 'all'}:${sportsbookFilter.join(',')}`;
+		const cacheKey = `${leagueFilter.length > 0 ? leagueFilter.join(',') : 'all'}:${gameTimeFilter || 'all'}:${sportsbookFilter.join(',')}`;
 		const cached = cachedChartsData.get(cacheKey);
 
 		if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
@@ -364,7 +391,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		setChartsError('');
 
 		const filters: FilterOptions = {
-			league: leagueFilter || null,
+			league: leagueFilter.length > 0 ? leagueFilter : null,
 			game_time: gameTimeFilter || null,
 			sportsbooks: sportsbookFilter.length > 0 ? sportsbookFilter : null
 		};
@@ -376,7 +403,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 			setChartsLoading(false);
 
 			// Cache the received data for instant filter switching
-			const cacheKey = `${leagueFilter || 'all'}:${gameTimeFilter || 'all'}:${sportsbookFilter.join(',')}`;
+			const cacheKey = `${leagueFilter.length > 0 ? leagueFilter.join(',') : 'all'}:${gameTimeFilter || 'all'}:${sportsbookFilter.join(',')}`;
 			setCachedChartsData(prev => {
 				const newCache = new Map(prev);
 				newCache.set(cacheKey, {
@@ -411,7 +438,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		if (connectionStatus !== 'connected' || !shouldFetchCharts) return;
 
 		const filters: FilterOptions = {
-			league: leagueFilter || null,
+			league: leagueFilter.length > 0 ? leagueFilter : null,
 			game_time: gameTimeFilter || null,
 			sportsbooks: sportsbookFilter.length > 0 ? sportsbookFilter : null
 		};
@@ -433,7 +460,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 				sportsbooks: arbSportsbookFilter.length > 0 ? arbSportsbookFilter : null,
 				min_profit: arbMinProfitFilter,
 				max_profit: arbMaxProfitFilter,
-				league: arbLeagueFilter || null,
+				league: arbLeagueFilter.length > 0 ? arbLeagueFilter : null,
 				market_type: arbMarketTypeFilter.length > 0 ? arbMarketTypeFilter : null
 			};
 
@@ -443,6 +470,56 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
 		return () => clearTimeout(timeoutId);
 	}, [arbLeagueFilter, arbMinProfitFilter, arbMaxProfitFilter, arbMarketTypeFilter, arbSportsbookFilter, connectionStatus, shouldFetchArbs]);
+
+	// Subscribe to EV stream when on /ev-bets
+	useEffect(() => {
+		if (!currentUser || !shouldFetchEv || connectionStatus !== 'connected') return;
+
+		console.log('Subscribing to EV stream');
+		setEvLoading(true);
+		setEvError('');
+
+		const filters: FilterOptions = {
+			sportsbooks: evSportsbookFilter.length > 0 ? evSportsbookFilter : null,
+			min_ev: evMinEvFilter,
+			league: evLeagueFilter.length > 0 ? evLeagueFilter : null,
+			confidence: evConfidenceFilter.length > 0 ? evConfidenceFilter : null
+		};
+
+		wsService.subscribe('ev', filters, (data) => {
+			const incomingEvBets = data.data as EVBet[];
+			setEvData(incomingEvBets);
+			setEvError('');
+			setEvLoading(false);
+		});
+
+		// Cleanup on unmount or when leaving ev-bets page
+		return () => {
+			console.log('Unsubscribing from EV stream');
+			wsService.unsubscribe('ev');
+		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [currentUser, shouldFetchEv, connectionStatus]);
+
+	// Update EV filters dynamically
+	// Debounced to prevent overwhelming WebSocket when slider is dragged rapidly
+	useEffect(() => {
+		if (connectionStatus !== 'connected' || !shouldFetchEv) return;
+
+		const timeoutId = setTimeout(() => {
+			const filters: FilterOptions = {
+				sportsbooks: evSportsbookFilter.length > 0 ? evSportsbookFilter : null,
+				min_ev: evMinEvFilter,
+				league: evLeagueFilter.length > 0 ? evLeagueFilter : null,
+				confidence: evConfidenceFilter.length > 0 ? evConfidenceFilter : null
+			};
+
+			console.log('[EVFilter] Sending filters:', JSON.stringify(filters));
+			wsService.updateFilters(filters);
+		}, 300);
+
+		return () => clearTimeout(timeoutId);
+	}, [evLeagueFilter, evMinEvFilter, evConfidenceFilter, evSportsbookFilter, connectionStatus, shouldFetchEv]);
 
 	// Helper function to check if a pinned arb is stale (not in latest incoming data)
 	const isArbStale = useCallback((arbId: string): boolean => {
@@ -458,6 +535,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		chartsError,
 		selectedGame,
 		setSelectedGame,
+		evData,
+		evLoading,
+		evError,
 		leagueFilter,
 		setLeagueFilter,
 		gameTimeFilter,
@@ -474,6 +554,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		setArbMarketTypeFilter,
 		arbSportsbookFilter,
 		setArbSportsbookFilter,
+		evLeagueFilter,
+		setEvLeagueFilter,
+		evMinEvFilter,
+		setEvMinEvFilter,
+		evConfidenceFilter,
+		setEvConfidenceFilter,
+		evSportsbookFilter,
+		setEvSportsbookFilter,
 		connectionStatus,
 		pinArb,
 		unpinArb,

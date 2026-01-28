@@ -228,7 +228,7 @@ function OddsScreen({ game, outcomes }: OddsScreenProps) {
 	}
 
 	return (
-		<div className="bg-gray-700/50 rounded-lg">
+		<div className="bg-zinc-950 border border-gray-600 rounded-lg">
 			<div className="overflow-x-auto">
 				<table className="min-w-full">
 					<thead>

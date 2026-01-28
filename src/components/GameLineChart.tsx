@@ -77,7 +77,7 @@ function GameLineChart({ game }: GameLineChartProps) {
 			width: chartContainerRef.current.clientWidth,
 			height: 400,
 			layout: {
-				background: { color: '#1f2937' },
+				background: { color: '#000000' },
 				textColor: '#d1d5db',
 			},
 			grid: {
@@ -211,17 +211,17 @@ function GameLineChart({ game }: GameLineChartProps) {
 
 	if (!moneylineMarket || outcomes.length === 0) {
 		return (
-			<div className="bg-gray-800 rounded-lg p-6">
+			<div className="bg-black rounded-lg p-6">
 				<p className="text-gray-400">No moneyline data available for this game.</p>
 			</div>
 		);
 	}
 
 	return (
-		<div className="bg-gray-800 rounded-lg p-6">
+		<div className="bg-black border-2 border-gray-500 rounded-lg p-6">
 			{/* Header */}
 			<div className="mb-4">
-				<h2 className="text-2xl font-bold">{game.away_team.replace(/_/g, ' ')} @ {game.home_team.replace(/_/g, ' ')}</h2>
+				<h2 className="text-2xl text-gray-200 font-bold">{game.away_team.replace(/_/g, ' ')} @ {game.home_team.replace(/_/g, ' ')}</h2>
 				<p className="text-gray-400 text-sm">
 					{new Date(game.start_time).toLocaleString()} • {game.league}
 				</p>
@@ -243,8 +243,8 @@ function GameLineChart({ game }: GameLineChartProps) {
 							onClick={() => setSelectedOutcome(outcome)}
 							className={`px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer ${
 								selectedOutcome?.outcome_id === outcome.outcome_id
-									? 'bg-indigo-600 text-white'
-									: 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+									? 'border border-gray-200 bg-gray-500 text-white'
+									: 'border border-gray-200 text-gray-300 hover:bg-gray-800'
 							}`}
 						>
 							{displayLabel}

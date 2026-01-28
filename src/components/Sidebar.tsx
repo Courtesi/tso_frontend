@@ -45,9 +45,9 @@ function Sidebar() {
 			)
 		},
 		{
-			name: '+EV Bets (Coming soon)',
+			name: '+EV Bets',
 			path: '/ev-bets',
-			available: false,
+			available: true,
 			icon: (
 				<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -69,7 +69,7 @@ function Sidebar() {
 
 	return (
 		<div
-			className={`hidden md:block border-r-1 border-gray-700 fixed left-0 top-17 h-[calc(100vh-4.25rem)] bg-gray-900 transition-all duration-700 ease-in-out ${
+			className={`hidden md:block border-r-1 border-gray-700 fixed left-0 top-17 h-[calc(100vh-4.25rem)] bg-gray-950 transition-all duration-700 ease-in-out ${
 				isCollapsed ? 'w-16' : 'w-64'
 			} overflow-hidden z-30`}
 			onMouseEnter={handleMouseEnter}

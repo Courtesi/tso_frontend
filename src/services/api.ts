@@ -107,6 +107,48 @@ export interface TerminalResponse {
 	message?: string;
 }
 
+// EV Betting Interfaces
+export interface TrueOddsSource {
+	probability: number;
+	american_odds: number;
+	liquidity: number;
+	volume: number;
+	confidence_score: number;
+	sources: number;  // Number of prediction markets used for weighted average
+}
+
+export interface EVBetSide {
+	team: string;
+	odds: number;
+	sportsbook: string;
+	implied_probability: number;
+}
+
+export interface EVBet {
+	id: string;
+	league: string;
+	matchup: string;
+	market: string;
+	game_time: string;
+	bet: EVBetSide;
+	true_odds: TrueOddsSource;
+	expected_value: number;
+	edge: number;
+	kelly_fraction: number;
+	confidence: string;  // "HIGH" | "MEDIUM" | "LOW"
+	found_at: string;
+}
+
+export interface EVResponse {
+	tier: string;
+	data: EVBet[];
+	metadata?: {
+		count: number;
+	};
+	cached_at?: string;
+	message?: string;
+}
+
 async function handleResponse<T>(response: Response): Promise<T> {
 	if (!response.ok) {
 		const error = await response.json().catch(() => ({ detail: 'An error occurred' }));

@@ -8,6 +8,7 @@ import { SidebarProvider } from './contexts/SidebarContext';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Charts from './pages/Charts';
+import EVBets from './pages/EVBets';
 import Settings from './pages/Settings';
 import Subscription from './pages/Subscription';
 import NotFound from './pages/NotFound';
@@ -27,6 +28,7 @@ function App() {
 										<Route path="/" element={<Home />} />
 										<Route path="/dashboard" element={<Dashboard />} />
 										<Route path="/charts" element={<Charts />} />
+										<Route path="/ev-bets" element={<EVBets />} />
 										<Route path="/settings" element={<Settings />} />
 										<Route path="/pricing" element={<Subscription />} />
 										<Route path="/subscription" element={<Subscription />} />

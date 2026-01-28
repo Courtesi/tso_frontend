@@ -99,6 +99,14 @@ function Charts() {
 		}
 	};
 
+	const handleLeagueToggle = (league: string) => {
+		if (leagueFilter.includes(league)) {
+			setLeagueFilter(leagueFilter.filter(l => l !== league));
+		} else {
+			setLeagueFilter([...leagueFilter, league]);
+		}
+	};
+
 	if (authLoading) {
 		return (
 			<div className="min-h-screen text-white relative bg-zinc-800 flex items-center justify-center">
@@ -110,7 +118,7 @@ function Charts() {
 	}
 
 	return (
-		<div className="min-h-screen text-white relative bg-zinc-800">
+		<div className="min-h-screen text-white relative bg-black">
 			<Navbar />
 			<Sidebar />
 
@@ -156,10 +164,10 @@ function Charts() {
 										<p className="text-gray-400">Select a game to view line movements</p>
 									</div>
 								) : (
-									<div className="bg-gradient-to-br from-indigo-400/40 via-indigo-500/30 to-indigo-400/30 backdrop-blur-md border border-indigo-500/10 shadow-xl rounded-lg p-12 text-center">
+									<div className="bg-gray-900 border border-gray-600 shadow-xl rounded-lg p-12 text-center">
 										<p className="text-gray-300 text-lg">No games available for the selected filters.</p>
 										<p className="text-gray-400 text-sm mt-2">
-											Try changing the league or game time filters, or check back later.
+											Try changing the league or sportsbooks filters, or check back later.
 										</p>
 									</div>
 								)}
@@ -171,7 +179,7 @@ function Charts() {
 								<div className="flex flex-col sm:flex-row lg:flex-col gap-4 mb-4">
 									{/* Toggle Switch for Upcoming/Live */}
 									<div className="flex justify-end mb-2">
-										<div className="flex items-center bg-gray-700 rounded-lg p-1 w-fit">
+										<div className="flex items-center bg-black border border-gray-600 rounded-lg p-1 w-fit">
 											<button
 												onClick={() => setGameTimeFilter('upcoming')}
 												className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 cursor-pointer ${
@@ -205,9 +213,13 @@ function Charts() {
 												e.stopPropagation();
 												setLeagueDropdownOpen(!leagueDropdownOpen);
 											}}
-											className="w-full bg-gray-700 text-white px-3 py-1.5 h-[34px] rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between text-sm"
+											className="w-full bg-black border border-gray-400 text-white px-3 py-1.5 h-[34px] rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between text-sm"
 										>
-											<span>{leagueFilter || 'All Leagues'}</span>
+											<span>
+												{leagueFilter.length === 0
+													? 'All Leagues'
+													: `${leagueFilter.length} selected`}
+											</span>
 											<svg
 												className={`w-4 h-4 ml-2 transition-transform ${leagueDropdownOpen ? 'rotate-180' : ''}`}
 												fill="none"
@@ -219,52 +231,47 @@ function Charts() {
 										</button>
 
 										{leagueDropdownOpen && (
-											<>
-												<div
-													className="fixed inset-0 z-40"
-													onClick={() => setLeagueDropdownOpen(false)}
-												/>
-												<div className="absolute top-full left-0 right-0 mt-1 bg-gray-700 rounded-lg shadow-lg z-50">
-													<div className="py-1">
+											<div className="absolute top-full left-0 right-0 mt-1 bg-gray-900 rounded-lg shadow-lg z-50">
+												{leagueFilter.length > 0 && (
 													<button
-														onClick={() => {
-															setLeagueFilter('');
-															setLeagueDropdownOpen(false);
-														}}
-														className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-600 cursor-pointer ${!leagueFilter ? 'text-indigo-400' : 'text-white'}`}
+														onClick={() => setLeagueFilter([])}
+														className="w-full text-left px-3 py-2 text-xs text-indigo-400 hover:text-indigo-300 hover:bg-gray-600 border-b border-gray-600 cursor-pointer"
 													>
-														All Leagues
+														Clear all
 													</button>
+												)}
+												<div className="py-1 max-h-60 overflow-y-auto">
 													{allLeagues.map(league => {
-														const isLocked = userTier === 'free' && tierConfig.free.allowed_leagues && !tierConfig.free.allowed_leagues.includes(league);
+														const isLocked = userTier === 'free' && tierConfig.free?.allowed_leagues && !tierConfig.free.allowed_leagues.includes(league);
 														return (
-															<button
+															<label
 																key={league}
-																onClick={() => {
-																	if (!isLocked) {
-																		setLeagueFilter(league);
-																		setLeagueDropdownOpen(false);
-																	}
-																}}
-																disabled={isLocked ? true : false}
-																className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-600 ${
-																	leagueFilter === league ? 'text-indigo-400 cursor-pointer' : isLocked ? 'text-gray-500 cursor-not-allowed' : 'text-white cursor-pointer'
+																className={`flex items-center gap-2 px-3 py-2 ${
+																	isLocked ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-gray-600'
 																}`}
 															>
-																{league}{isLocked ? ' (Premium)' : ''}
-															</button>
+																<input
+																	type="checkbox"
+																	checked={leagueFilter.includes(league)}
+																	onChange={() => !isLocked && handleLeagueToggle(league)}
+																	disabled={isLocked || false}
+																	className="w-4 h-4 text-indigo-600 bg-gray-800 border-gray-600 rounded focus:ring-indigo-500"
+																/>
+																<span className={`text-sm ${isLocked ? 'text-gray-500' : 'text-white'}`}>
+																	{league}{isLocked ? ' (Premium)' : ''}
+																</span>
+															</label>
 														);
 													})}
 												</div>
 											</div>
-											</>
 										)}
 									</div>
 
 									<div className="relative" ref={sportsbookDropdownRef}>
 										<button
 											onClick={() => setSportsbookDropdownOpen(!sportsbookDropdownOpen)}
-											className="w-full bg-gray-700 text-white px-3 py-1.5 h-[34px] rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between text-sm"
+											className="w-full bg-black border border-gray-400 text-white px-3 py-1.5 h-[34px] rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between text-sm"
 										>
 											<span>
 												{sportsbookFilter.length === 0
@@ -282,11 +289,11 @@ function Charts() {
 										</button>
 
 										{sportsbookDropdownOpen && (
-											<div className="absolute top-full left-0 right-0 mt-1 bg-gray-700 rounded-lg shadow-lg z-50">
+											<div className="absolute top-full left-0 right-0 mt-1 bg-gray-900 rounded-lg shadow-lg z-50">
 												{sportsbookFilter.length > 0 && (
 													<button
 														onClick={() => setSportsbookFilter([])}
-														className="w-full text-left px-3 py-2 text-xs text-indigo-400 hover:text-indigo-300 hover:bg-gray-600 border-b border-gray-600"
+														className="w-full text-left px-3 py-2 text-xs text-indigo-400 hover:text-indigo-300 hover:bg-gray-600 border-b border-gray-600 cursor-pointer"
 													>
 														Clear all
 													</button>

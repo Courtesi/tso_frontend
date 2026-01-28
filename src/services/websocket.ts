@@ -4,7 +4,7 @@ const WS_URL = import.meta.env.VITE_API_URL?.replace('http', 'ws') || 'ws://loca
 
 export interface FilterOptions {
 	// Terminal/Charts filters
-	league?: string | null;
+	league?: string | string[] | null;
 	game_time?: string | null;
 	sportsbooks?: string[] | null;
 
@@ -12,10 +12,14 @@ export interface FilterOptions {
 	min_profit?: number | null;
 	max_profit?: number | null;
 	market_type?: string | string[] | null;
+
+	// EV-specific filters
+	min_ev?: number | null;
+	confidence?: string[] | null;
 }
 
 export type ConnectionStatus = 'connected' | 'disconnected' | 'reconnecting';
-export type StreamType = 'arbs' | 'terminal';
+export type StreamType = 'arbs' | 'terminal' | 'ev';
 
 // Type for stream data callback - allows any structure but maintains type safety
 export interface StreamDataPayload {
