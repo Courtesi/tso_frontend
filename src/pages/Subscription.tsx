@@ -353,10 +353,13 @@ function Subscription() {
 										<li className="text-white font-medium">
 											{tierFeatures.premium?.features_intro || 'Everything in Free, and:'}
 										</li>
-										{(tierFeatures.premium?.features || [
-											"Access to unlimited arbitrage bets",
-											"Real time updates on bets",
-										]).map((feature, index) => (
+										{(product.features && product.features.length > 0
+											? product.features.map((f: { name: string }) => f.name)
+											: tierFeatures.premium?.features || [
+												"Access to unlimited arbitrage bets",
+												"Real time updates on bets",
+											]
+										).map((feature: string, index: number) => (
 											<li key={index} className="text-white font-medium">
 												<img
 													className="inline-block w-8 h-8 mr-2"

@@ -9,7 +9,11 @@ interface PriceInfo {
 	interval?: string;
 	interval_count?: number;
 	type: 'one_time' | 'recurring';
-	[key: string]: any;
+	[key: string]: string | number | boolean | undefined;
+}
+
+interface ProductFeature {
+	name: string;
 }
 
 interface Product {
@@ -19,26 +23,36 @@ interface Product {
 	active: boolean;
 	priceId: string;
 	priceInfo: PriceInfo;
-	[key: string]: any;
+	features?: ProductFeature[];
+	[key: string]: string | number | boolean | undefined | PriceInfo | ProductFeature[];
+}
+
+interface FirebaseTimestamp {
+	seconds: number;
+	nanoseconds: number;
+}
+
+interface SubscriptionPrice {
+	id: string;
+	unit_amount: number;
+	currency: string;
+	interval?: string;
+}
+
+interface SubscriptionProduct {
+	name: string;
+	description: string;
 }
 
 interface Subscription {
 	id: string;
 	status: string;
-	current_period_end: any;
-	current_period_start: any;
+	current_period_end: FirebaseTimestamp;
+	current_period_start: FirebaseTimestamp;
 	cancel_at_period_end: boolean;
-	price?: {
-		id: string;
-		unit_amount: number;
-		currency: string;
-		interval?: string;
-	};
-	product?: {
-		name: string;
-		description: string;
-	};
-	[key: string]: any;
+	price?: SubscriptionPrice;
+	product?: SubscriptionProduct;
+	[key: string]: string | boolean | undefined | FirebaseTimestamp | SubscriptionPrice | SubscriptionProduct;
 }
 
 interface StripeContextType {
@@ -126,9 +140,9 @@ export function StripeProvider({ children }: StripeProviderProps) {
 
 			setProducts(fetchedProducts);
 			setHasFetched(true);
-		} catch (err: any) {
+		} catch (err: unknown) {
 			console.error('Error fetching Stripe products:', err);
-			setError(err.message || 'Failed to load products');
+			setError(err instanceof Error ? err.message : 'Failed to load products');
 		} finally {
 			setLoading(false);
 		}
