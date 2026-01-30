@@ -444,7 +444,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		};
 
 		console.log('Updating terminal WebSocket filters:', filters);
-		wsService.updateFilters(filters);
+		wsService.updateFilters('terminal', filters);
 
 	}, [leagueFilter, gameTimeFilter, sportsbookFilter, connectionStatus, shouldFetchCharts]);
 
@@ -465,7 +465,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 			};
 
 			console.log('[ArbFilter] Sending filters:', JSON.stringify(filters));
-			wsService.updateFilters(filters);
+			wsService.updateFilters('arbs', filters);
 		}, 300);
 
 		return () => clearTimeout(timeoutId);
@@ -515,7 +515,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 			};
 
 			console.log('[EVFilter] Sending filters:', JSON.stringify(filters));
-			wsService.updateFilters(filters);
+			wsService.updateFilters('ev', filters);
 		}, 300);
 
 		return () => clearTimeout(timeoutId);
@@ -573,7 +573,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
 }
 
 // Exporting custom hook alongside component is standard React context pattern
-// eslint-disable-next-line react-refresh/only-export-components
 export function useData() {
 	const context = useContext(DataContext);
 	if (context === undefined) {

@@ -45,12 +45,13 @@ export class WebSocketService {
 	private reconnectTimeout: number | null = null;
 	private reconnectAttempts = 0;
 	private maxReconnectAttempts = 5;
-	private reconnectDelay = 5000;
+	private reconnectDelay = 1000;
 	private pingInterval: number | null = null;
 	private pongTimeout: number | null = null;
 	private connectionStatus: ConnectionStatus = 'disconnected';
 	private currentToken: string | null = null;
 	private pendingSubscriptions: Map<StreamType, {filters: FilterOptions, callback: StreamCallback}> = new Map();
+	private activeSubscriptions: Set<StreamType> = new Set();
 
 	// Callbacks
 	private onMessageCallbacks: Map<StreamType, StreamCallback> = new Map();
@@ -117,6 +118,7 @@ export class WebSocketService {
 		this.setStatus('disconnected');
 		this.onMessageCallbacks.clear();
 		this.pendingSubscriptions.clear();
+		this.activeSubscriptions.clear();
 	}
 
 	subscribe(stream: StreamType, filters: FilterOptions, onMessage: StreamCallback): void {
@@ -135,14 +137,19 @@ export class WebSocketService {
 			// Connection not ready, store for later
 			this.pendingSubscriptions.set(stream, { filters, callback: onMessage });
 		}
+
+		this.activeSubscriptions.add(stream);
 	}
 
-	updateFilters(filters: FilterOptions): void {
-		console.log('Updating filters:', filters);
+	updateFilters(stream: StreamType, filters: FilterOptions): void {
+		if (!this.activeSubscriptions.has(stream)) return;
+
+		console.log(`Updating ${stream} filters:`, filters);
 
 		if (this.ws && this.ws.readyState === WebSocket.OPEN) {
 			this.send({
 				type: 'update_filters',
+				stream,
 				filters
 			});
 		}
@@ -151,6 +158,7 @@ export class WebSocketService {
 	unsubscribe(stream: StreamType): void {
 		console.log(`Unsubscribing from ${stream}`);
 
+		this.activeSubscriptions.delete(stream);
 		this.onMessageCallbacks.delete(stream);
 		this.pendingSubscriptions.delete(stream);
 
