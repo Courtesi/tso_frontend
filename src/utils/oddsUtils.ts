@@ -147,8 +147,7 @@ export function toDecimalOdds(odds: number | string): number {
 export function calculateArbStakes(
 	odds1: number | string,
 	odds2: number | string,
-	bankroll: number,
-	kellyFraction: number
+	totalWager: number
 ): { stake1: number; stake2: number } {
 	const decimal1 = toDecimalOdds(odds1);
 	const decimal2 = toDecimalOdds(odds2);
@@ -157,9 +156,6 @@ export function calculateArbStakes(
 	const impliedProb1 = 1 / decimal1;
 	const impliedProb2 = 1 / decimal2;
 	const totalImpliedProb = impliedProb1 + impliedProb2;
-
-	// Total amount to wager based on Kelly
-	const totalWager = bankroll * kellyFraction;
 
 	// Distribute stakes proportionally to ensure equal payout
 	const stake1 = totalWager * (impliedProb1 / totalImpliedProb);

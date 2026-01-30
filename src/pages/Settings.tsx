@@ -31,6 +31,7 @@ function Settings() {
 	const [kellyFraction, setKellyFraction] = useState<number>(0.25);
 	const [customKelly, setCustomKelly] = useState<string>('');
 	const [isCustomKelly, setIsCustomKelly] = useState(false);
+	const [arbBetAmount, setArbBetAmount] = useState<string>('');
 	const [oddsFormat, setOddsFormat] = useState<OddsFormat>('american');
 	const [saving, setSaving] = useState(false);
 	const [successMessage, setSuccessMessage] = useState('');
@@ -40,6 +41,7 @@ function Settings() {
 	useEffect(() => {
 		if (settings) {
 			setBankroll(settings.bankroll.toString());
+			setArbBetAmount((settings.arbBetAmount ?? 100).toString());
 			setOddsFormat(settings.oddsFormat);
 
 			// Check if kelly fraction matches a preset
@@ -91,9 +93,15 @@ function Settings() {
 				}
 			}
 
+			const arbBetValue = parseFloat(arbBetAmount);
+			if (isNaN(arbBetValue) || arbBetValue < 0) {
+				throw new Error('Please enter a valid arb bet amount');
+			}
+
 			await updateSettings({
 				bankroll: bankrollValue,
 				kellyFraction: kellyValue,
+				arbBetAmount: arbBetValue,
 				oddsFormat,
 			});
 
@@ -217,7 +225,29 @@ function Settings() {
 							</p>
 						</div>
 
-						{/* Odds Format */}
+						{/* Arb Bet Amount */}
+					<div>
+						<label className="block text-sm font-medium text-gray-100 mb-2">
+							Arb Bet Amount
+						</label>
+						<div className="relative">
+							<span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+							<input
+								type="number"
+								value={arbBetAmount}
+								onChange={(e) => setArbBetAmount(e.target.value)}
+								placeholder="100"
+								min="0"
+								step="0.01"
+								className="w-full pl-8 pr-4 py-3 bg-gray-900 text-white border border-gray-600 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors"
+							/>
+						</div>
+						<p className="mt-1 text-xs text-gray-400">
+							Maximum total stake across both sides of an arbitrage bet
+						</p>
+					</div>
+
+					{/* Odds Format */}
 						<div>
 							<label className="block text-sm font-medium text-gray-100 mb-2">
 								Odds Display Format

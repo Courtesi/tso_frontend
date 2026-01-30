@@ -144,7 +144,7 @@ function EVBets() {
 												<th className="w-[10%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Sportsbook</th>
 												<th className="w-[12%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">True Odds</th>
 												<th className="w-[12%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Confidence</th>
-												<th className="w-[10%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Kelly %</th>
+												<th className="w-[10%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Bet Size</th>
 												<th className="w-[24%] px-2 py-4 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Game</th>
 											</tr>
 										</thead>
@@ -221,10 +221,13 @@ function EVBets() {
 															</span>
 														</td>
 
-														{/* Kelly % */}
+														{/* Bet Size */}
 														<td className="px-2 py-2 text-center border-r-2 border-gray-300/50">
-															<div className="text-sm text-gray-200">
-																{formatKelly(bet.kelly_fraction)}
+															<div className="text-sm text-white font-medium">
+																${((settings?.bankroll || 1000) * bet.kelly_fraction * (settings?.kellyFraction || 0.25)).toFixed(2)}
+															</div>
+															<div className="text-xs text-gray-500">
+																{formatKelly(bet.kelly_fraction * (settings?.kellyFraction || 0.25))}
 															</div>
 														</td>
 

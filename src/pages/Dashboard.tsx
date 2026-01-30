@@ -184,12 +184,11 @@ function Dashboard() {
 													minute: '2-digit'
 												});
 
-												// Calculate stakes based on user's bankroll and Kelly fraction
+												// Calculate stakes based on user's arb bet amount
 												const { stake1, stake2 } = calculateArbStakes(
 													bet.bet1.odds,
 													bet.bet2.odds,
-													settings?.bankroll || 1000,
-													settings?.kellyFraction || 0.25
+													settings?.arbBetAmount || 100
 												);
 
 												return (

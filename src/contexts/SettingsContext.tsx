@@ -8,6 +8,7 @@ export type OddsFormat = 'american' | 'decimal' | 'fractional' | 'probability';
 export interface UserSettings {
 	bankroll: number;
 	kellyFraction: number;
+	arbBetAmount: number;
 	oddsFormat: OddsFormat;
 	createdAt?: Timestamp;
 	updatedAt?: Timestamp;
@@ -23,13 +24,12 @@ interface SettingsContextType {
 const DEFAULT_SETTINGS: Omit<UserSettings, 'createdAt' | 'updatedAt'> = {
 	bankroll: 1000,
 	kellyFraction: 0.25,
+	arbBetAmount: 100,
 	oddsFormat: 'american',
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
-// Exporting custom hook alongside component is standard React context pattern
-// eslint-disable-next-line react-refresh/only-export-components
 export function useSettings() {
 	const context = useContext(SettingsContext);
 	if (context === undefined) {
