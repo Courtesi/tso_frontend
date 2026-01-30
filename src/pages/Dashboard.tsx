@@ -121,7 +121,7 @@ function Dashboard() {
 				)}
 
 				{/* Filters */}
-				{!loading && !error && (
+				{!error && (
 					<div className="max-w-7xl mx-auto">
 						<ArbFilters />
 					</div>

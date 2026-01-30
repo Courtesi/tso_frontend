@@ -141,41 +141,45 @@ function Charts() {
 
 				{/* Main Content */}
 				<div className="max-w-7xl mx-auto">
-					{loading && (
-						<div className="text-center text-gray-400 py-12">
-							Loading terminal data...
+					<div className="grid grid-cols-12 gap-4 lg:gap-6">
+						{/* Chart Area */}
+						<div className="col-span-12 lg:col-span-9 order-2 lg:order-1">
+							{loading && (
+								<div className="text-center text-gray-400 py-12">
+									Loading terminal data...
+								</div>
+							)}
+
+							{error && (
+								<div className="bg-red-900 bg-opacity-50 border border-red-500 rounded-lg p-4 text-red-200">
+									{error}
+								</div>
+							)}
+
+							{!loading && !error && (
+								<>
+									{games.length > 0 && selectedGame ? (
+										<GameLineChart game={selectedGame} />
+									) : games.length > 0 ? (
+										<div className="bg-gray-800 rounded-lg p-12 text-center">
+											<p className="text-gray-400">Select a game to view line movements</p>
+										</div>
+									) : (
+										<div className="bg-gray-900 border border-gray-600 shadow-xl rounded-lg p-12 text-center">
+											<p className="text-gray-300 text-lg">No games available for the selected filters.</p>
+											<p className="text-gray-400 text-sm mt-2">
+												Try changing the league or sportsbooks filters, or check back later.
+											</p>
+										</div>
+									)}
+								</>
+							)}
 						</div>
-					)}
 
-					{error && (
-						<div className="bg-red-900 bg-opacity-50 border border-red-500 rounded-lg p-4 text-red-200">
-							{error}
-						</div>
-					)}
-
-					{!loading && !error && (
-						<div className="grid grid-cols-12 gap-4 lg:gap-6">
-							{/* Chart Area */}
-							<div className="col-span-12 lg:col-span-9 order-2 lg:order-1">
-								{games.length > 0 && selectedGame ? (
-									<GameLineChart game={selectedGame} />
-								) : games.length > 0 ? (
-									<div className="bg-gray-800 rounded-lg p-12 text-center">
-										<p className="text-gray-400">Select a game to view line movements</p>
-									</div>
-								) : (
-									<div className="bg-gray-900 border border-gray-600 shadow-xl rounded-lg p-12 text-center">
-										<p className="text-gray-300 text-lg">No games available for the selected filters.</p>
-										<p className="text-gray-400 text-sm mt-2">
-											Try changing the league or sportsbooks filters, or check back later.
-										</p>
-									</div>
-								)}
-							</div>
-
-							{/* Sidebar Container - Filters + Game List */}
-							<div className="col-span-12 lg:col-span-3 order-1 lg:order-2">
-								{/* Filters */}
+						{/* Sidebar Container - Filters + Game List */}
+						<div className="col-span-12 lg:col-span-3 order-1 lg:order-2">
+							{/* Filters - always visible (hidden on error) */}
+							{!error && (
 								<div className="flex flex-col sm:flex-row lg:flex-col gap-4 mb-4">
 									{/* Toggle Switch for Upcoming/Live */}
 									<div className="flex justify-end mb-2">
@@ -318,16 +322,18 @@ function Charts() {
 										)}
 									</div>
 								</div>
+							)}
 
-								{/* Game List */}
+							{/* Game List - only when loaded */}
+							{!loading && !error && (
 								<GameListSidebar
 									games={games}
 									selectedGame={selectedGame}
 									onSelectGame={setSelectedGame}
 								/>
-							</div>
+							)}
 						</div>
-					)}
+					</div>
 				</div>
 			</div>
 		</div>

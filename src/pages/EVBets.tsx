@@ -110,7 +110,7 @@ function EVBets() {
 				)}
 
 				{/* Filters */}
-				{!evLoading && !evError && (
+				{!evError && (
 					<div className="max-w-7xl mx-auto">
 						<EVFilters />
 					</div>
