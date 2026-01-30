@@ -198,21 +198,21 @@ function Subscription() {
 				</div>
 
 				{/* Active Subscription Info */}
-				{currentUser && subscription && (
+				{currentUser && (subscription || userTier === 'premium') && (
 					<div className="max-w-3xl mx-auto mb-12 bg-gradient-to-r from-green-900/30 to-emerald-900/30 backdrop-blur-md border border-green-500/30 rounded-xl p-6">
 						<div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
 							<div>
 								<h3 className="text-xl font-bold text-white mb-2">Active Subscription</h3>
 								<p className="text-gray-200">
-									{subscription.product?.name || 'Premium Plan'}
-									{subscription.cancel_at_period_end && (
+									{subscription?.product?.name || 'Premium Plan'}
+									{subscription?.cancel_at_period_end && (
 										<span className="ml-2 text-yellow-400">(Cancels at period end)</span>
 									)}
 								</p>
-								{subscription.current_period_end && (
+								{subscription?.current_period_end && (
 									<p className="text-sm text-gray-300 mt-1">
-										{subscription.cancel_at_period_end ? 'Access until' : 'Renews on'}{' '}
-										{new Date(subscription.current_period_end.seconds * 1000).toLocaleDateString()}
+										{subscription?.cancel_at_period_end ? 'Access until' : 'Renews on'}{' '}
+										{new Date(subscription!.current_period_end.seconds * 1000).toLocaleDateString()}
 									</p>
 								)}
 							</div>
