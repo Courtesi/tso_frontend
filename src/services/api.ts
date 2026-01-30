@@ -152,7 +152,10 @@ export interface EVResponse {
 async function handleResponse<T>(response: Response): Promise<T> {
 	if (!response.ok) {
 		const error = await response.json().catch(() => ({ detail: 'An error occurred' }));
-		throw new Error(error.detail || `HTTP error! status: ${response.status}`);
+		const detail = Array.isArray(error.detail)
+			? error.detail.map((e: { msg?: string }) => e.msg).join(', ')
+			: error.detail;
+		throw new Error(detail || `HTTP error! status: ${response.status}`);
 	}
 
 	// Handle empty responses (204 No Content)
