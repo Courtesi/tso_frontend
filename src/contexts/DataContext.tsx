@@ -219,6 +219,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
 	const CACHE_TTL = 30000; // 30 seconds
 
 	// WebSocket connection management
+	// Depend on UID, not the User object reference — Firebase's onAuthStateChanged
+	// fires multiple times on page load (cached user, then server-verified user),
+	// producing a new User reference each time. Using the full object as a dependency
+	// causes a needless disconnect → reconnect cycle.
 	useEffect(() => {
 		if (!currentUser) return;
 
@@ -242,7 +246,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 			unsubscribe();
 			wsService.disconnect();
 		};
-	}, [currentUser]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [currentUser?.uid]);
 
 	// Subscribe to arbitrage stream when on /dashboard
 	useEffect(() => {
@@ -361,7 +366,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		};
 		// sportsbookFilter is intentionally omitted - filter updates are handled by the updateFilters effect below
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [currentUser, shouldFetchArbs, connectionStatus]);
+	}, [currentUser?.uid, shouldFetchArbs, connectionStatus]);
 
 	// Subscribe to terminal stream when on /charts
 	useEffect(() => {
@@ -431,7 +436,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		// Filter values and cache are intentionally omitted - filter updates are handled by the updateFilters effect below
 		// cachedChartsData and chartsData.length are only read on initial subscription, not tracked for changes
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [currentUser, shouldFetchCharts, connectionStatus]);
+	}, [currentUser?.uid, shouldFetchCharts, connectionStatus]);
 
 	// Update terminal filters dynamically when they change (NO reconnection needed)
 	useEffect(() => {
@@ -499,7 +504,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 			wsService.unsubscribe('ev');
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [currentUser, shouldFetchEv, connectionStatus]);
+	}, [currentUser?.uid, shouldFetchEv, connectionStatus]);
 
 	// Update EV filters dynamically
 	// Debounced to prevent overwhelming WebSocket when slider is dragged rapidly
