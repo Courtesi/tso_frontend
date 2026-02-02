@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { type GameTerminalData } from '../services/api';
+import type { GameTerminalData } from '../types/terminal';
 
 interface GameListSidebarProps {
 	games: GameTerminalData[];

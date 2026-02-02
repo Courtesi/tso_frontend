@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import { type GameTerminalData, type OutcomeLine, type LineDataPoint, type SportsbookInfo, api } from '../services/api';
+import { type SportsbookInfo, api } from '../services/api';
+import type { GameTerminalData, OutcomeLine, LineDataPoint } from '../types/terminal';
 import { useSettings, type OddsFormat } from '../contexts/SettingsContext';
 import { formatOdds } from '../utils/oddsUtils';
 

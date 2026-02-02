@@ -34,121 +34,6 @@ export interface TierFeaturesResponse {
 	all_leagues: string[];
 }
 
-export interface Arbs {
-	message: string;
-	tier: string;
-	data: Array<{
-		id: number;
-		league: string;
-		matchup: string;
-		market: string;
-		game_time: string;
-		profit_percentage: number;
-		bet1: {
-			team: string;
-			odds: number;
-			sportsbook: string;
-			stake: number;
-		};
-		bet2: {
-			team: string;
-			odds: number;
-			sportsbook: string;
-			stake: number;
-		};
-		found_at: string;
-		expires_in_minutes: number;
-	}>;
-}
-
-// Terminal/Line Movement Interfaces
-export interface LineDataPoint {
-	odds: number;
-	sportsbook: string;
-	timestamp: number;
-}
-
-export interface OutcomeLine {
-	outcome_id: string;
-	outcome_name: string;
-	history: LineDataPoint[];
-	current_best_odds: number;
-	current_best_sportsbook: string;
-	history_by_sportsbook?: Record<string, LineDataPoint[]>;
-}
-
-export interface MarketLines {
-	market_type: string;
-	market_display: string;
-	outcomes: OutcomeLine[];
-}
-
-export interface GameTerminalData {
-	event_id: string;
-	sport: string;
-	league: string;
-	home_team: string;
-	away_team: string;
-	matchup: string;
-	start_time: string;
-	game_status: string;
-	markets: MarketLines[];
-}
-
-export interface TerminalResponse {
-	tier: string;
-	data: GameTerminalData[];
-	metadata?: {
-		count: number;
-		league: string;
-		game_time: string;
-	};
-	cached_at?: string;
-	message?: string;
-}
-
-// EV Betting Interfaces
-export interface TrueOddsSource {
-	probability: number;
-	american_odds: number;
-	liquidity: number;
-	volume: number;
-	confidence_score: number;
-	sources: number;  // Number of prediction markets used for weighted average
-}
-
-export interface EVBetSide {
-	team: string;
-	odds: number;
-	sportsbook: string;
-	implied_probability: number;
-}
-
-export interface EVBet {
-	id: string;
-	league: string;
-	matchup: string;
-	market: string;
-	game_time: string;
-	bet: EVBetSide;
-	true_odds: TrueOddsSource;
-	expected_value: number;
-	edge: number;
-	kelly_fraction: number;
-	confidence: string;  // "HIGH" | "MEDIUM" | "LOW"
-	found_at: string;
-}
-
-export interface EVResponse {
-	tier: string;
-	data: EVBet[];
-	metadata?: {
-		count: number;
-	};
-	cached_at?: string;
-	message?: string;
-}
-
 async function handleResponse<T>(response: Response): Promise<T> {
 	if (!response.ok) {
 		const error = await response.json().catch(() => ({ detail: 'An error occurred' }));
@@ -248,10 +133,6 @@ class ApiService {
 		});
 	}
 
-	async getArbs(): Promise<Arbs> {
-		return this.protectedRequest('/api/data/arbs');
-	}
-
 	// ==================== STRIPE ENDPOINTS ====================
 
 	async createPortalSession(request: CreatePortalSessionRequest): Promise<{ url: string }> {
@@ -268,47 +149,6 @@ class ApiService {
 			body: request,
 		});
 	}
-
-	// ==================== STREAMING ====================
-	// NOTE: SSE streaming methods (streamArbs, streamTerminal) have been removed.
-	// Real-time streaming now uses WebSocket via the wsService in websocket.ts
-
-	// ==================== TERMINAL ENDPOINTS ====================
-
-	async getTerminalData(league?: string, gameTime?: string): Promise<TerminalResponse> {
-		let url = '/api/data/terminal';
-		const params = new URLSearchParams();
-
-		if (league) params.append('league', league);
-		if (gameTime) params.append('game_time', gameTime);
-
-		if (params.toString()) {
-			url += `?${params.toString()}`;
-		}
-
-		return this.protectedRequest(url);
-	}
-
-	async getLineHistory(
-		eventId: string,
-		marketType: string,
-		outcomeId: string,
-		startTime?: number,
-		endTime?: number
-	): Promise<{ event_id: string; market_type: string; outcome_id: string; history: LineDataPoint[]; count: number }> {
-		let url = `/api/data/terminal/lines/${eventId}/${marketType}/${outcomeId}`;
-		const params = new URLSearchParams();
-
-		if (startTime) params.append('start_time', startTime.toString());
-		if (endTime) params.append('end_time', endTime.toString());
-
-		if (params.toString()) {
-			url += `?${params.toString()}`;
-		}
-
-		return this.protectedRequest(url);
-	}
-
 }
 
 // Export singleton instance

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { createChart, type IChartApi, type ISeriesApi, type LineData, LineSeries} from 'lightweight-charts';
-import { type GameTerminalData, type OutcomeLine } from '../services/api';
+import type { GameTerminalData, OutcomeLine } from '../types/terminal';
 import OddsScreen from './OddsScreen';
 
 interface GameLineChartProps {

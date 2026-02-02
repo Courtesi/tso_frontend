@@ -259,12 +259,23 @@ function Dashboard() {
 															{/* Link 1 */}
 															<td className="px-2 py-1 text-center align-middle">
 																{getSportsbookIcon(bet.bet1.sportsbook) ? (
-																	<img
-																		src={getSportsbookIcon(bet.bet1.sportsbook)!}
-																		alt={bet.bet1.sportsbook}
-																		className="w-6 h-6 rounded-lg object-contain mx-auto cursor-pointer hover:opacity-80 transition-opacity"
-																		title={bet.bet1.sportsbook}
-																	/>
+																	bet.bet1.link ? (
+																		<a href={bet.bet1.link} target="_blank" rel="noopener noreferrer">
+																			<img
+																				src={getSportsbookIcon(bet.bet1.sportsbook)!}
+																				alt={bet.bet1.sportsbook}
+																				className="w-6 h-6 rounded-lg object-contain mx-auto cursor-pointer hover:opacity-80 transition-opacity"
+																				title={bet.bet1.sportsbook}
+																			/>
+																		</a>
+																	) : (
+																			<img
+																				src={getSportsbookIcon(bet.bet1.sportsbook)!}
+																				alt={bet.bet1.sportsbook}
+																				className="w-6 h-6 rounded-lg object-contain mx-auto cursor-not-allowed opacity-40 grayscale"
+																				title={bet.bet1.sportsbook}
+																			/>
+																	)
 																) : (
 																	<div className="flex items-center justify-center gap-1 text-xs text-gray-300 hover:text-white cursor-pointer">
 																		<span>Book</span>
@@ -298,12 +309,23 @@ function Dashboard() {
 															{/* Link 2 */}
 															<td className="px-2 py-1 text-center align-middle">
 																{getSportsbookIcon(bet.bet2.sportsbook) ? (
-																	<img
-																		src={getSportsbookIcon(bet.bet2.sportsbook)!}
-																		alt={bet.bet2.sportsbook}
-																		className="w-6 h-6 rounded-lg object-contain mx-auto cursor-pointer hover:opacity-80 transition-opacity"
-																		title={bet.bet2.sportsbook}
-																	/>
+																	bet.bet2.link ? (
+																		<a href={bet.bet2.link} target="_blank" rel="noopener noreferrer">
+																			<img
+																				src={getSportsbookIcon(bet.bet2.sportsbook)!}
+																				alt={bet.bet2.sportsbook}
+																				className="w-6 h-6 rounded-lg object-contain mx-auto cursor-pointer hover:opacity-80 transition-opacity"
+																				title={bet.bet2.sportsbook}
+																			/>
+																		</a>
+																	) : (
+																		<img
+																			src={getSportsbookIcon(bet.bet2.sportsbook)!}
+																			alt={bet.bet2.sportsbook}
+																			className="w-6 h-6 rounded-lg object-contain mx-auto cursor-not-allowed opacity-40 grayscale"
+																			title={bet.bet2.sportsbook}
+																		/>
+																	)
 																) : (
 																	<div className="flex items-center justify-center gap-1 text-xs text-gray-300">
 																		<span>Book</span>

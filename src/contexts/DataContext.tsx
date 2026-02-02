@@ -1,28 +1,10 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import type { GameTerminalData, EVBet } from '../services/api';
 import { wsService, type ConnectionStatus, type FilterOptions } from '../services/websocket';
-
-interface BetSide {
-	team: string;
-	odds: number;
-	sportsbook: string;
-	stake: number;
-}
-
-export interface ArbitrageBet {
-	id: number;
-	league: string;
-	matchup: string;
-	market: string;
-	game_time: string;
-	profit_percentage: number;
-	bet1: BetSide;
-	bet2: BetSide;
-	found_at: string;
-	expires_in_minutes: number;
-}
+import type { ArbitrageBet } from '../types/arbs';
+import type { GameTerminalData } from '../types/terminal';
+import type { EVBet } from '../types/ev';
 
 const PINNED_ARBS_STORAGE_KEY = 'pinnedArbs';
 
