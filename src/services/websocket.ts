@@ -51,7 +51,7 @@ export class WebSocketService {
 	private connectionStatus: ConnectionStatus = 'disconnected';
 	private currentToken: string | null = null;
 	private pendingSubscriptions: Map<StreamType, {filters: FilterOptions, callback: StreamCallback}> = new Map();
-	private activeSubscriptions: Set<StreamType> = new Set();
+	private activeSubscriptions: Map<StreamType, { filters: FilterOptions }> = new Map();
 
 	// Callbacks
 	private onMessageCallbacks: Map<StreamType, StreamCallback> = new Map();
@@ -138,12 +138,13 @@ export class WebSocketService {
 			this.pendingSubscriptions.set(stream, { filters, callback: onMessage });
 		}
 
-		this.activeSubscriptions.add(stream);
+		this.activeSubscriptions.set(stream, { filters: { ...filters } });
 	}
 
 	updateFilters(stream: StreamType, filters: FilterOptions): void {
 		if (!this.activeSubscriptions.has(stream)) return;
 
+		this.activeSubscriptions.set(stream, { filters: { ...filters } });
 		console.log(`Updating ${stream} filters:`, filters);
 
 		if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -198,14 +199,18 @@ export class WebSocketService {
 					this.setStatus('connected');
 					this.startHeartbeat();
 
-					// Subscribe to any pending subscriptions
+					// Re-subscribe all active subscriptions (reconnection case)
+					this.activeSubscriptions.forEach(({ filters }, stream) => {
+						if (this.onMessageCallbacks.has(stream)) {
+							this.send({ type: 'subscribe', stream, filters });
+						}
+					});
+
+					// Process pending subscriptions (first-connect case)
 					this.pendingSubscriptions.forEach(({ filters, callback }, stream) => {
 						this.onMessageCallbacks.set(stream, callback);
-						this.send({
-							type: 'subscribe',
-							stream,
-							filters
-						});
+						this.activeSubscriptions.set(stream, { filters: { ...filters } });
+						this.send({ type: 'subscribe', stream, filters });
 					});
 					this.pendingSubscriptions.clear();
 					break;

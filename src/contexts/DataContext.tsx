@@ -145,6 +145,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
 	// WebSocket connection status
 	const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
 
+	// Refs to skip redundant filter updates on initial subscribe
+	const terminalJustSubscribed = useRef(false);
+	const arbsJustSubscribed = useRef(false);
+	const evJustSubscribed = useRef(false);
+
 	// Pinned arbs state (stores full arb objects for stale display)
 	const [pinnedArbs, setPinnedArbs] = useState<Map<string, ArbitrageBet>>(() => loadPinnedArbs());
 
@@ -198,7 +203,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		data: GameTerminalData[];
 		timestamp: number;
 	}>>(new Map());
-	const CACHE_TTL = 30000; // 30 seconds
 
 	// WebSocket connection management
 	// Depend on UID, not the User object reference — Firebase's onAuthStateChanged
@@ -236,7 +240,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		if (!currentUser || !shouldFetchArbs || connectionStatus !== 'connected') return;
 
 		console.log('Subscribing to arbs stream');
-		setArbLoading(true);
+		if (arbData.length === 0) setArbLoading(true);
 		setArbError('');
 
 		const filters: FilterOptions = {
@@ -247,6 +251,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 			market_type: arbMarketTypeFilter.length > 0 ? arbMarketTypeFilter : null
 		};
 
+		arbsJustSubscribed.current = true;
 		wsService.subscribe('arbs', filters, (data) => {
 			const incomingArbs = data.data as ArbitrageBet[];
 			const currentTime = new Date();
@@ -364,7 +369,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		const cacheKey = `${leagueFilter.length > 0 ? leagueFilter.join(',') : 'all'}:${gameTimeFilter || 'all'}:${sportsbookFilter.join(',')}`;
 		const cached = cachedChartsData.get(cacheKey);
 
-		if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
+		if (cached) {
 			// Show cached data instantly
 			setChartsData(cached.data);
 			setChartsLoading(false);
@@ -383,6 +388,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 			sportsbooks: sportsbookFilter.length > 0 ? sportsbookFilter : null
 		};
 
+		terminalJustSubscribed.current = true;
 		wsService.subscribe('terminal', filters, (data) => {
 			const terminalData = data.data as GameTerminalData[];
 			setChartsData(terminalData);
@@ -424,6 +430,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		if (connectionStatus !== 'connected' || !shouldFetchCharts) return;
 
+		if (terminalJustSubscribed.current) {
+			terminalJustSubscribed.current = false;
+			return;
+		}
+
 		const filters: FilterOptions = {
 			league: leagueFilter.length > 0 ? leagueFilter : null,
 			game_time: gameTimeFilter || null,
@@ -439,6 +450,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
 	// Debounced to prevent overwhelming WebSocket when slider is dragged rapidly
 	useEffect(() => {
 		if (connectionStatus !== 'connected' || !shouldFetchArbs) return;
+
+		if (arbsJustSubscribed.current) {
+			arbsJustSubscribed.current = false;
+			return;
+		}
 
 		console.log('[ArbFilter] Scheduling update - min:', arbMinProfitFilter, 'max:', arbMaxProfitFilter);
 
@@ -463,7 +479,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		if (!currentUser || !shouldFetchEv || connectionStatus !== 'connected') return;
 
 		console.log('Subscribing to EV stream');
-		setEvLoading(true);
+		if (evData.length === 0) setEvLoading(true);
 		setEvError('');
 
 		const filters: FilterOptions = {
@@ -473,6 +489,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 			confidence: evConfidenceFilter.length > 0 ? evConfidenceFilter : null
 		};
 
+		evJustSubscribed.current = true;
 		wsService.subscribe('ev', filters, (data) => {
 			const incomingEvBets = data.data as EVBet[];
 			setEvData(incomingEvBets);
@@ -492,6 +509,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
 	// Debounced to prevent overwhelming WebSocket when slider is dragged rapidly
 	useEffect(() => {
 		if (connectionStatus !== 'connected' || !shouldFetchEv) return;
+
+		if (evJustSubscribed.current) {
+			evJustSubscribed.current = false;
+			return;
+		}
 
 		const timeoutId = setTimeout(() => {
 			const filters: FilterOptions = {
