@@ -1,5 +1,5 @@
 interface PinButtonProps {
-	arbId: string;
+	id: string;
 	isPinned: boolean;
 	isStale?: boolean;
 	onToggle: () => void;
@@ -19,12 +19,12 @@ function PinButton({ isPinned, isStale, onToggle }: PinButtonProps) {
 
 	const getAriaLabel = () => {
 		if (isPinned && isStale) {
-			return 'Unpin stale arbitrage opportunity';
+			return 'Unpin stale item';
 		}
 		if (isPinned) {
-			return 'Unpin arbitrage opportunity';
+			return 'Unpin item';
 		}
-		return 'Pin arbitrage opportunity';
+		return 'Pin item';
 	};
 
 	// Pushpin icon SVG - filled when pinned, outline when unpinned
@@ -69,7 +69,7 @@ function PinButton({ isPinned, isStale, onToggle }: PinButtonProps) {
 			onKeyDown={handleKeyDown}
 			className={`cursor-pointer transition-all duration-200 ${getButtonStyle()}`}
 			aria-label={getAriaLabel()}
-			title={isStale ? 'This arb may no longer be available. Click to unpin.' : isPinned ? 'Click to unpin' : 'Click to pin'}
+			title={isStale ? 'This item may no longer be available. Click to unpin.' : isPinned ? 'Click to unpin' : 'Click to pin'}
 		>
 			{PinIcon}
 		</button>

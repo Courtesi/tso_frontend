@@ -5,9 +5,7 @@ import { useParticles } from '../contexts/ParticlesContext';
 import AuthModal from '../components/AuthModal';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import AnimatedSignupMockup from '../components/AnimatedSignupMockup';
-import AnimatedUpgradeMockup from '../components/AnimatedUpgradeMockup';
-import AnimatedDashboardMockup from '../components/AnimatedDashboardMockup';
+import FeatureSection from '../components/FeatureSection';
 
 import Particles from "@tsparticles/react";
 import BugReportModal from '../components/BugReportModal';
@@ -172,72 +170,58 @@ function Home() {
 						View Plans
 					</button>
 				</div>
+			</div>
 
-				{/* Onboarding Tutorial Section */}
-				<div className="max-w-6xl mx-auto mb-28">
+			{/* Feature Showcase - Full width, outside container */}
+			<div className="relative z-10 w-full bg-gray-900 py-16 px-4 lg:px-8">
+				<div className="max-w-6xl mx-auto">
+					<h2 className="heading-hero uppercase text-3xl lg:text-5xl text-gray-100 text-center mb-50">
+						What We Offer
+					</h2>
 
-					{/* Step 1: Sign Up - Text on Left, Image on Right */}
-					<div className="grid grid-cols-1 md:grid-cols-[40%_60%] px-4 md:px-20 py-6 md:py-10 gap-8 items-center mb-20 rounded-3xl md:rounded-[100px] bg-gradient-to-tr from-indigo-400/60 via-indigo-500/50 to-indigo-400/50 backdrop-blur-md border
-  border-indigo-500/10 shadow-xl">
-						<div className="order-2 md:order-1">
-							<div className="flex items-center gap-3 mb-4">
-								<h3 className="heading-hero uppercase text-2xl md:text-3xl text-gray-100">
-									Make an Account
-								</h3>
-							</div>
-							<p className="text-lg text-gray-200 leading-relaxed">
-								Sign up in seconds. Verify your account. Get instant access to our platform right away.
-							</p>
-						</div>
-						<div className="order-1 md:order-2">
-							<div className="bg-gray-700/30 rounded-[40px] md:rounded-[90px] overflow-hidden aspect-[16/12] flex items-center justify-center">
-								<AnimatedSignupMockup />
-							</div>
-						</div>
-					</div>
+					<FeatureSection
+						title="Track Odds in Real Time"
+						description="Watch how betting lines move across sportsbooks with live-updating charts. Spot trends and find the right moment to place your bets."
+						features={[
+							'Real-time line movement tracking',
+							'Multi-sportsbook comparison',
+							'Historical odds data',
+						]}
+						imageSrc="/dashboard_screenshots/charts-plus-laptop.png"
+						imageAlt="Real-time odds charts"
+						imagePosition="right"
+					/>
 
-					{/* Step 2: View Dashboard - Image on Left, Text on Right */}
-					<div className="grid grid-cols-1 md:grid-cols-[60%_40%] px-4 md:px-14 py-6 md:py-10 gap-8 items-center mb-20 rounded-3xl md:rounded-[100px] bg-gradient-to-br from-indigo-400/60 via-indigo-500/30 to-indigo-400/30 backdrop-blur-md border
-  border-indigo-500/10 shadow-xl">
-						<div className="order-1">
-							<div className="bg-gray-700 rounded-[40px] md:rounded-[90px] overflow-hidden aspect-[16/12] flex items-center justify-center">
-								<AnimatedDashboardMockup />
-							</div>
-						</div>
-						<div className="order-2">
-							<div className="flex items-center gap-3 mb-4">
-								<h3 className="heading-hero uppercase text-2xl md:text-3xl text-gray-100">
-									Start Betting
-								</h3>
-							</div>
-							<p className="text-lg text-gray-200 leading-relaxed">
-								Access your dashboard and start exploring betting opportunities by taking advantage of the latest mispriced bets from our supported sportsbooks.
-							</p>
-						</div>
-					</div>
+					<FeatureSection
+						title="Automatic Arbitrage Bets"
+						description="Our dashboard automatically detects mispriced odds across sportsbooks and calculates guaranteed profit opportunities for you."
+						features={[
+							'Automatic arbitrage detection',
+							'Profit and stake calculations',
+							'Growing supported sportsbooks',
+						]}
+						imageSrc="/dashboard_screenshots/arbs-with-visuals.png"
+						imageAlt="Arbitrage dashboard"
+						imagePosition="left"
+					/>
 
-					{/* Step 3: Subscribe - Text on Left, Image on Right */}
-					<div className="grid grid-cols-1 md:grid-cols-[40%_60%] px-4 md:px-20 py-6 md:py-10 gap-8 items-center mb-20 rounded-3xl md:rounded-[100px] bg-gradient-to-tl from-indigo-300/50 via-indigo-400/50 to-indigo-300/20 backdrop-blur-md border
-  border-indigo-500/10 shadow-xl">
-						<div className="order-2 md:order-1">
-							<div className="flex items-center gap-3 mb-4">
-								<h3 className="heading-hero uppercase text-2xl md:text-3xl text-gray-100">
-									Upgrade for Live Odds
-								</h3>
-							</div>
-							<p className="text-lg text-gray-200 leading-relaxed">
-								Subscribe to our premium plan to get real time odds delivered straight to your feed.
-							</p>
-						</div>
-						<div className="order-1 md:order-2">
-							<div className="bg-gray-700/30 rounded-[40px] md:rounded-[90px] overflow-hidden aspect-[16/12] flex items-center justify-center">
-								<AnimatedUpgradeMockup />
-							</div>
-						</div>
-					</div>
+					<FeatureSection
+						title="Bet with a Mathematical Edge"
+						description="Expected value bets highlight wagers where the odds are in your favor. Filter by sport, market, and EV percentage to find the best opportunities."
+						features={[
+							'Expected value calculations',
+							'Advanced filtering options',
+							'Sortable by EV percentage',
+						]}
+						imageSrc="/dashboard_screenshots/evbets.PNG"
+						imageAlt="EV bets table"
+						imagePosition="right"
+					/>
 				</div>
+			</div>
 
-				{/* Final CTA Section */}
+			{/* Final CTA Section */}
+			<div className="container mx-auto px-4 py-20">
 				<div className="max-w-4xl mx-auto text-center">
 					<div className="p-12 md:p-16">
 						<h2 className="heading-hero uppercase text-4xl md:text-5xl text-gray-100 mb-12">
