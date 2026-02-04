@@ -146,13 +146,13 @@ function Dashboard() {
 							{/* Table Container */}
 							<div className="shadow-xl rounded-lg overflow-hidden">
 								<div className="overflow-x-auto">
-									<table className="w-full table-fixed">
+									<table className="w-full table-fixed min-w-[900px]">
 										{/* Table Header */}
 										<thead className="border-b border-gray-400/50">
 											<tr>
-												<th className="w-[5%] px-1 py-4"></th>
-												<th className="w-[8%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Value</th>
-												<th className="w-[26%] px-2 py-4 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Game</th>
+												<th className="w-[45px] min-w-[45px] max-w-[45px] px-1 py-4 sticky left-0 z-20 bg-black"></th>
+												<th className="w-[72px] min-w-[72px] max-w-[72px] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider sticky left-[45px] z-20 bg-black">Value</th>
+												<th className="w-[26%] px-2 py-4 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider sticky left-[117px] z-20 bg-black">Game</th>
 												<th className="w-[12%] px-2 py-4 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Market</th>
 												<th className="w-[27%] px-2 py-4 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Bet</th>
 												<th className="w-[12%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Bet Size</th>
@@ -196,9 +196,9 @@ function Dashboard() {
 														{/* First Row - Bet 1 */}
 														<tr className={`${rowBg} ${pinnedBorder} transition-colors border-b-0 h-8`}>
 															{/* Pin Button (spans 2 rows) */}
-															<td rowSpan={2} className="px-1 py-1 text-center align-middle">
+															<td rowSpan={2} className="px-1 py-1 text-center align-middle sticky left-0 z-10 bg-black">
 																<PinButton
-																	arbId={bet.id.toString()}
+																	id={bet.id.toString()}
 																	isPinned={isPinned(bet.id.toString())}
 																	isStale={isStale}
 																	onToggle={() => {
@@ -212,14 +212,14 @@ function Dashboard() {
 															</td>
 
 															{/* Value (spans 2 rows) */}
-															<td rowSpan={2} className="px-2 py-1 text-center border-r-2 border-gray-300/50 align-middle">
+															<td rowSpan={2} className="px-2 py-1 text-center border-r-2 border-gray-300/50 align-middle sticky left-[45px] z-10 bg-black">
 																<div className="text-sm font-bold text-green-400">
 																	{bet.profit_percentage.toFixed(2)}%
 																</div>
 															</td>
 
 															{/* Game (spans 2 rows) */}
-															<td rowSpan={2} className="px-2 py-1 border-r-2 border-gray-300/50 align-middle">
+															<td rowSpan={2} className="px-2 py-1 border-r-2 border-gray-300/50 align-middle sticky left-[117px] z-10 bg-black">
 																<div className="text-sm font-medium text-white truncate" title={`${bet.matchup.replace(/_/g, ' ')} - ${bet.league}`}>
 																	{bet.matchup.replace(/_/g, ' ')} - {bet.league}
 																</div>

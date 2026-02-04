@@ -9,13 +9,14 @@ import { formatOdds } from '../utils/oddsUtils';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import EVFilters from '../components/EVFilters';
+import PinButton from '../components/PinButton';
 
 // Cache sportsbook config at module level to avoid refetching
 let sportsbooksCache: Record<string, SportsbookInfo> | null = null;
 
 function EVBets() {
 	const { currentUser, userTier, loading: authLoading } = useAuth();
-	const { evData, evLoading, evError } = useData();
+	const { evData, evLoading, evError, pinEv, unpinEv, isEvPinned, isEvStale } = useData();
 	const { isCollapsed } = useSidebar();
 	const { settings } = useSettings();
 	const navigate = useNavigate();
@@ -135,12 +136,13 @@ function EVBets() {
 							{/* Table Container */}
 							<div className="shadow-xl rounded-lg overflow-hidden">
 								<div className="overflow-x-auto">
-									<table className="w-full table-fixed">
+									<table className="w-full table-fixed min-w-[900px]">
 										{/* Table Header */}
 										<thead className="border-b border-gray-400/50">
 											<tr>
-												<th className="w-[8%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">EV%</th>
-												<th className="w-[24%] px-2 py-4 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Bet</th>
+												<th className="w-[45px] min-w-[45px] max-w-[45px] px-1 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider sticky left-0 z-20 bg-black"></th>
+												<th className="w-[72px] min-w-[72px] max-w-[72px] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider sticky left-[45px] z-20 bg-black">EV%</th>
+												<th className="w-[24%] px-2 py-4 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider sticky left-[117px] z-20 bg-black">Bet</th>
 												<th className="w-[10%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Sportsbook</th>
 												<th className="w-[12%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">True Odds</th>
 												<th className="w-[12%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Confidence</th>
@@ -157,6 +159,13 @@ function EVBets() {
 													? 'bg-gray-800/10 hover:bg-gray-900/20'
 													: 'bg-gray-800/10 hover:bg-gray-900/20';
 
+												// Check if this EV bet is pinned and/or stale
+												const isPinnedEv = isEvPinned(bet.id.toString());
+												const isStale = isPinnedEv && isEvStale(bet.id.toString());
+												const pinnedBorder = isPinnedEv
+													? (isStale ? 'border-l-3 border-r-3 border-l-red-800 border-r-red-800' : 'border-l-3 border-r-3 border-l-indigo-500 border-r-indigo-500')
+													: '';
+
 												// Format game time
 												const gameTime = new Date(bet.game_time).toLocaleString([], {
 													month: 'short',
@@ -166,9 +175,25 @@ function EVBets() {
 												});
 
 												return (
-													<tr key={bet.id} className={`${rowBg} transition-colors h-12`}>
+													<tr key={bet.id} className={`${rowBg} ${pinnedBorder} transition-colors h-12`}>
+														{/* Pin Button */}
+														<td className="px-1 py-1 text-center align-middle sticky left-0 z-10 bg-black">
+															<PinButton
+																id={bet.id.toString()}
+																isPinned={isPinnedEv}
+																isStale={isStale}
+																onToggle={() => {
+																	if (isEvPinned(bet.id.toString())) {
+																		unpinEv(bet.id.toString());
+																	} else {
+																		pinEv(bet);
+																	}
+																}}
+															/>
+														</td>
+
 														{/* EV% */}
-														<td className="px-2 py-2 text-center border-r-2 border-gray-300/50">
+														<td className="px-2 py-2 text-center border-r-2 border-gray-300/50 sticky left-[45px] z-10 bg-black">
 															<div className="text-sm font-bold text-green-400">
 																+{bet.expected_value.toFixed(2)}%
 															</div>
@@ -178,7 +203,7 @@ function EVBets() {
 														</td>
 
 														{/* Bet */}
-														<td className="px-2 py-2 border-r-2 border-gray-300/50">
+														<td className="px-2 py-2 border-r-2 border-gray-300/50 sticky left-[117px] z-10 bg-black">
 															<div className="text-sm text-white font-medium truncate" title={bet.bet.team.replace(/_/g, ' ')}>
 																{bet.bet.team.replace(/_/g, ' ')}
 																<span className="ml-2 px-2 py-0.5 text-xs text-gray-300">
@@ -239,6 +264,12 @@ function EVBets() {
 															<div className="text-xs text-gray-400">
 																{bet.league} • {gameTime}
 															</div>
+															{isStale && (
+																<div className="text-xs text-red-400 mt-1 flex items-center gap-1">
+																	<span>⚠</span>
+																	<span>May no longer be available</span>
+																</div>
+															)}
 														</td>
 													</tr>
 												);

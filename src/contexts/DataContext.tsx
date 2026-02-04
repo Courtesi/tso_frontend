@@ -7,6 +7,7 @@ import type { GameTerminalData } from '../types/terminal';
 import type { EVBet } from '../types/ev';
 
 const PINNED_ARBS_STORAGE_KEY = 'pinnedArbs';
+const PINNED_EV_BETS_STORAGE_KEY = 'pinnedEvBets';
 
 interface DataContextType {
 	// Arbitrage data
@@ -64,6 +65,12 @@ interface DataContextType {
 	unpinArb: (arbId: string) => void;
 	isPinned: (arbId: string) => boolean;
 	isArbStale: (arbId: string) => boolean;
+
+	// Pinned EV bets
+	pinEv: (ev: EVBet) => void;
+	unpinEv: (evId: string) => void;
+	isEvPinned: (evId: string) => boolean;
+	isEvStale: (evId: string) => boolean;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -97,6 +104,36 @@ function savePinnedArbs(pinnedArbs: Map<string, ArbitrageBet>): void {
 function getArbFingerprint(arb: ArbitrageBet): string {
 	const sportsbooks = [arb.bet1.sportsbook, arb.bet2.sportsbook].sort();
 	return `${arb.matchup}|${arb.market}|${sportsbooks[0]}|${sportsbooks[1]}`;
+}
+
+// Load pinned EV bets from localStorage
+function loadPinnedEvBets(): Map<string, EVBet> {
+	try {
+		const stored = localStorage.getItem(PINNED_EV_BETS_STORAGE_KEY);
+		if (stored) {
+			const parsed = JSON.parse(stored) as Record<string, EVBet>;
+			return new Map(Object.entries(parsed));
+		}
+	} catch (e) {
+		console.error('Failed to load pinned EV bets from localStorage:', e);
+	}
+	return new Map();
+}
+
+// Save pinned EV bets to localStorage
+function savePinnedEvBets(pinnedEvBets: Map<string, EVBet>): void {
+	try {
+		const obj = Object.fromEntries(pinnedEvBets);
+		localStorage.setItem(PINNED_EV_BETS_STORAGE_KEY, JSON.stringify(obj));
+	} catch (e) {
+		console.error('Failed to save pinned EV bets to localStorage:', e);
+	}
+}
+
+// Generate a unique fingerprint for an EV bet based on its content
+// EV bets have a single sportsbook (unlike arbs with two)
+function getEvFingerprint(ev: EVBet): string {
+	return `${ev.matchup}|${ev.market}|${ev.bet.sportsbook}`;
 }
 
 export function DataProvider({ children }: { children: ReactNode }) {
@@ -175,6 +212,31 @@ export function DataProvider({ children }: { children: ReactNode }) {
 	// Track which pinned arbs are stale (not in latest server data)
 	const [staleArbIds, setStaleArbIds] = useState<Set<string>>(new Set());
 
+	// Pinned EV bets state (stores full EV bet objects for stale display)
+	const [pinnedEvBets, setPinnedEvBets] = useState<Map<string, EVBet>>(() => loadPinnedEvBets());
+
+	// Ref to track current pinnedEvBets for use in callbacks (avoids stale closure)
+	const pinnedEvBetsRef = useRef<Map<string, EVBet>>(pinnedEvBets);
+
+	// Keep the ref in sync with state
+	useEffect(() => {
+		pinnedEvBetsRef.current = pinnedEvBets;
+	}, [pinnedEvBets]);
+
+	// Track last seen timestamps for pinned EV bets
+	const [evLastSeen, setEvLastSeen] = useState<Map<string, Date>>(new Map());
+
+	// Ref to track current evLastSeen for use in callbacks (avoids stale closure)
+	const evLastSeenRef = useRef<Map<string, Date>>(evLastSeen);
+
+	// Keep the ref in sync with state
+	useEffect(() => {
+		evLastSeenRef.current = evLastSeen;
+	}, [evLastSeen]);
+
+	// Track which pinned EV bets are stale (not in latest server data)
+	const [staleEvIds, setStaleEvIds] = useState<Set<string>>(new Set());
+
 	// Pinned arbs functions
 	const pinArb = useCallback((arb: ArbitrageBet) => {
 		setPinnedArbs(prev => {
@@ -197,6 +259,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
 	const isPinned = useCallback((arbId: string): boolean => {
 		return pinnedArbs.has(arbId);
 	}, [pinnedArbs]);
+
+	// Pinned EV bets functions
+	const pinEv = useCallback((ev: EVBet) => {
+		setPinnedEvBets(prev => {
+			const next = new Map(prev);
+			next.set(ev.id.toString(), ev);
+			savePinnedEvBets(next);
+			return next;
+		});
+	}, []);
+
+	const unpinEv = useCallback((evId: string) => {
+		setPinnedEvBets(prev => {
+			const next = new Map(prev);
+			next.delete(evId);
+			savePinnedEvBets(next);
+			return next;
+		});
+	}, []);
+
+	const isEvPinned = useCallback((evId: string): boolean => {
+		return pinnedEvBets.has(evId);
+	}, [pinnedEvBets]);
 
 	// Cache terminal data per filter combination for instant filter switching
 	const [cachedChartsData, setCachedChartsData] = useState<Map<string, {
@@ -492,7 +577,94 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		evJustSubscribed.current = true;
 		wsService.subscribe('ev', filters, (data) => {
 			const incomingEvBets = data.data as EVBet[];
-			setEvData(incomingEvBets);
+			const currentTime = new Date();
+
+			// Update last seen timestamps for all incoming EV bets (use ref to avoid stale closure)
+			const newLastSeen = new Map(evLastSeenRef.current);
+			incomingEvBets.forEach(ev => {
+				newLastSeen.set(ev.id.toString(), currentTime);
+			});
+
+			// Get current pinned EV bets (use ref to avoid stale closure)
+			const currentPinnedEvBets = pinnedEvBetsRef.current;
+
+			// Create fingerprint-based lookups
+			const incomingByFingerprint = new Map<string, EVBet>();
+			incomingEvBets.forEach(ev => {
+				incomingByFingerprint.set(getEvFingerprint(ev), ev);
+			});
+
+			const pinnedByFingerprint = new Map<string, EVBet>();
+			Array.from(currentPinnedEvBets.values()).forEach(ev => {
+				pinnedByFingerprint.set(getEvFingerprint(ev), ev);
+			});
+
+			// Categorize by fingerprint (mutually exclusive)
+			const freshPinnedEvBets: EVBet[] = [];
+			const stalePinnedEvBets: EVBet[] = [];
+			const unpinnedEvBets: EVBet[] = [];
+			let pinnedEvBetsUpdated = false;
+
+			// Check each pinned EV bet - is it in incoming?
+			pinnedByFingerprint.forEach((pinnedEv, fingerprint) => {
+				const incomingEv = incomingByFingerprint.get(fingerprint);
+				if (incomingEv) {
+					// EV bet exists in both - use fresh data, mark as pinned
+					freshPinnedEvBets.push(incomingEv);
+					// Update the stored pinned EV bet with fresh data (including new ID if changed)
+					if (pinnedEv.id !== incomingEv.id) {
+						currentPinnedEvBets.delete(pinnedEv.id.toString());
+					}
+					currentPinnedEvBets.set(incomingEv.id.toString(), incomingEv);
+					pinnedEvBetsUpdated = true;
+				} else {
+					// EV bet only in pinned - it's stale
+					stalePinnedEvBets.push(pinnedEv);
+				}
+			});
+
+			// Check incoming EV bets that aren't pinned
+			incomingByFingerprint.forEach((ev, fingerprint) => {
+				if (!pinnedByFingerprint.has(fingerprint)) {
+					unpinnedEvBets.push(ev);
+				}
+			});
+
+			// Save updated pinned EV bets if we refreshed any with new data
+			if (pinnedEvBetsUpdated) {
+				savePinnedEvBets(currentPinnedEvBets);
+				setPinnedEvBets(new Map(currentPinnedEvBets));
+			}
+
+			// Auto-unpin stale EV bets older than 30 minutes
+			const staleThreshold = 30 * 60 * 1000; // 30 minutes in milliseconds
+			const autoUnpinIds: string[] = [];
+
+			stalePinnedEvBets.forEach(ev => {
+				const lastSeen = newLastSeen.get(ev.id.toString());
+				if (lastSeen && (currentTime.getTime() - lastSeen.getTime()) > staleThreshold) {
+					autoUnpinIds.push(ev.id.toString());
+				}
+			});
+
+			// Remove auto-unpinned IDs
+			if (autoUnpinIds.length > 0) {
+				autoUnpinIds.forEach(id => unpinEv(id));
+			}
+
+			// Track which pinned EV bets are stale
+			const remainingStaleEv = stalePinnedEvBets.filter(ev => !autoUnpinIds.includes(ev.id.toString()));
+			setStaleEvIds(new Set(remainingStaleEv.map(ev => ev.id.toString())));
+
+			// Merge and sort: fresh pinned → stale pinned → unpinned
+			const sortedData = [
+				...freshPinnedEvBets.sort((a, b) => b.expected_value - a.expected_value),
+				...remainingStaleEv,
+				...unpinnedEvBets.sort((a, b) => b.expected_value - a.expected_value)
+			];
+
+			setEvData(sortedData);
+			setEvLastSeen(newLastSeen);
 			setEvError('');
 			setEvLoading(false);
 		});
@@ -535,6 +707,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		return staleArbIds.has(arbId);
 	}, [staleArbIds]);
 
+	// Helper function to check if a pinned EV bet is stale (not in latest incoming data)
+	const isEvStale = useCallback((evId: string): boolean => {
+		return staleEvIds.has(evId);
+	}, [staleEvIds]);
+
 	const value = {
 		arbData,
 		arbLoading,
@@ -576,6 +753,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		unpinArb,
 		isPinned,
 		isArbStale,
+		pinEv,
+		unpinEv,
+		isEvPinned,
+		isEvStale,
 	};
 
 	return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
