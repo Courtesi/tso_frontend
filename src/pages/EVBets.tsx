@@ -218,18 +218,34 @@ function EVBets() {
 														{/* Sportsbook */}
 														<td className="px-2 py-2 text-center border-r-2 border-gray-300/50">
 															{getSportsbookIcon(bet.bet.sportsbook) ? (
-																<img
-																	src={getSportsbookIcon(bet.bet.sportsbook)!}
-																	alt={bet.bet.sportsbook}
-																	className="w-6 h-6 rounded-lg object-contain mx-auto cursor-pointer hover:opacity-80 transition-opacity"
-																	title={bet.bet.sportsbook}
-																/>
+																bet.bet.link ? (
+																	<a
+																		href={bet.bet.link}
+																		target="_blank"
+																		rel="noopener noreferrer"
+																		className="w-6 h-6 rounded-lg object-contain mx-auto cursor-pointer hover:opacity-80 transition-opacity"
+																		title={bet.bet.sportsbook}
+																	>
+																		<img
+																			src={getSportsbookIcon(bet.bet.sportsbook)!}
+																			alt={bet.bet.sportsbook}
+																			className="w-6 h-6 rounded-lg object-contain mx-auto cursor-pointer hover:opacity-80 transition-opacity"
+																			title={bet.bet.sportsbook}
+																		/>
+																	</a>
+																) : (
+																	<img
+																		src={getSportsbookIcon(bet.bet.sportsbook)!}
+																		alt={bet.bet.sportsbook}
+																		className="w-6 h-6 rounded-lg object-contain mx-auto cursor-pointer hover:opacity-80 transition-opacity"
+																		title={bet.bet.sportsbook}
+																	/>
+																)
 															) : (
 																<span className="text-xs text-gray-300">{bet.bet.sportsbook}</span>
 															)}
 														</td>
 
-														{/* True Odds */}
 														<td className="px-2 py-2 text-center border-r-2 border-gray-300/50">
 															<div className="text-sm text-blue-400">
 																{formatOdds(bet.true_odds.american_odds, settings?.oddsFormat || 'american')}
