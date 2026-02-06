@@ -1,9 +1,10 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { wsService, type ConnectionStatus, type FilterOptions } from '../services/websocket';
 import type { ArbitrageBet } from '../types/arbs';
 import type { GameTerminalData } from '../types/terminal';
 import type { EVBet } from '../types/ev';
+import { applyTerminalFilters } from '../utils/terminalFilters';
 
 const PINNED_ARBS_STORAGE_KEY = 'pinnedArbs';
 const PINNED_EV_BETS_STORAGE_KEY = 'pinnedEvBets';
@@ -143,8 +144,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 	const [arbLoading, setArbLoading] = useState(false);
 	const [arbError, setArbError] = useState('');
 
-	// Charts state
-	const [chartsData, setChartsData] = useState<GameTerminalData[]>([]);
+	// Charts state — raw data from server (tier-filtered only), filtered view derived via useMemo
+	const [rawChartsData, setRawChartsData] = useState<GameTerminalData[]>([]);
 	const [chartsLoading, setChartsLoading] = useState(false);
 	const [chartsError, setChartsError] = useState('');
 	const [selectedGame, setSelectedGame] = useState<GameTerminalData | null>(null);
@@ -176,15 +177,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 	const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
 
 	// Refs to skip redundant filter updates on initial subscribe
-	const terminalJustSubscribed = useRef(false);
 	const arbsJustSubscribed = useRef(false);
 	const evJustSubscribed = useRef(false);
-
-	// Ref to keep terminal filter values current inside the persistent subscribe callback
-	const chartsFilterRef = useRef({ leagueFilter, gameTimeFilter, sportsbookFilter });
-	useEffect(() => {
-		chartsFilterRef.current = { leagueFilter, gameTimeFilter, sportsbookFilter };
-	}, [leagueFilter, gameTimeFilter, sportsbookFilter]);
 
 	// Pinned arbs state (stores full arb objects for stale display)
 	const [pinnedArbs, setPinnedArbs] = useState<Map<string, ArbitrageBet>>(() => loadPinnedArbs());
@@ -282,11 +276,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		return pinnedEvBets.has(evId);
 	}, [pinnedEvBets]);
 
-	// Cache terminal data per filter combination for instant filter switching
-	const [cachedChartsData, setCachedChartsData] = useState<Map<string, {
-		data: GameTerminalData[];
-		timestamp: number;
-	}>>(new Map());
+	// Derive filtered chartsData from raw server data + user-preference filters
+	const chartsData = useMemo(
+		() => applyTerminalFilters(rawChartsData, leagueFilter, gameTimeFilter, sportsbookFilter),
+		[rawChartsData, leagueFilter, gameTimeFilter, sportsbookFilter]
+	);
+
+	// Update selectedGame when chartsData changes (filter change or new server data)
+	const prevChartsDataRef = useRef(chartsData);
+	useEffect(() => {
+		if (chartsData === prevChartsDataRef.current) return;
+		prevChartsDataRef.current = chartsData;
+
+		setSelectedGame(prev => {
+			if (!prev) {
+				return chartsData.length > 0 ? chartsData[0] : null;
+			}
+			const updated = chartsData.find(g => g.event_id === prev.event_id);
+			return updated || chartsData[0] || null;
+		});
+	}, [chartsData]);
 
 	// WebSocket connection management
 	// Depend on UID, not the User object reference — Firebase's onAuthStateChanged
@@ -437,65 +446,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
 	}, [currentUser?.uid]);
 
 	// Subscribe to terminal stream (persistent — stays active for the entire session)
+	// No user-preference filters sent — filtering is done client-side via useMemo
 	useEffect(() => {
 		if (!currentUser) return;
 
-		console.log('Subscribing to terminal stream with filters:', {
-			league: leagueFilter,
-			game_time: gameTimeFilter,
-			sportsbooks: sportsbookFilter
-		});
+		console.log('Subscribing to terminal stream (no user-preference filters — filtered client-side)');
 
-		// Check cache and show immediately if available and fresh
-		const cacheKey = `${leagueFilter.length > 0 ? leagueFilter.join(',') : 'all'}:${gameTimeFilter || 'all'}:${sportsbookFilter.join(',')}`;
-		const cached = cachedChartsData.get(cacheKey);
-
-		if (cached) {
-			// Show cached data instantly
-			setChartsData(cached.data);
-			setChartsLoading(false);
-		} else {
-			// No cache or stale - show loading
-			if (chartsData.length === 0) {
-				setChartsLoading(true);
-			}
+		if (rawChartsData.length === 0) {
+			setChartsLoading(true);
 		}
-
 		setChartsError('');
 
-		const filters: FilterOptions = {
-			league: leagueFilter.length > 0 ? leagueFilter : null,
-			game_time: gameTimeFilter || null,
-			sportsbooks: sportsbookFilter.length > 0 ? sportsbookFilter : null
-		};
-
-		terminalJustSubscribed.current = true;
-		wsService.subscribe('terminal', filters, (data) => {
+		wsService.subscribe('terminal', {}, (data) => {
 			const terminalData = data.data as GameTerminalData[];
-			setChartsData(terminalData);
+			setRawChartsData(terminalData);
 			setChartsError('');
 			setChartsLoading(false);
-
-			// Cache the received data for instant filter switching
-			const { leagueFilter: lf, gameTimeFilter: gtf, sportsbookFilter: sf } = chartsFilterRef.current;
-			const cacheKey = `${lf.length > 0 ? lf.join(',') : 'all'}:${gtf || 'all'}:${sf.join(',')}`;
-			setCachedChartsData(prev => {
-				const newCache = new Map(prev);
-				newCache.set(cacheKey, {
-					data: terminalData,
-					timestamp: Date.now()
-				});
-				return newCache;
-			});
-
-			setSelectedGame(prevSelected => {
-				if (!prevSelected) {
-					return terminalData.length > 0 ? terminalData[0] : null;
-				}
-
-				const updatedGame = terminalData.find((g: GameTerminalData) => g.event_id === prevSelected.event_id);
-				return updatedGame || terminalData[0] || prevSelected;
-			});
 		});
 
 		return () => {
@@ -503,24 +469,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [currentUser?.uid]);
-
-	// Update terminal filters dynamically when they change (NO reconnection needed)
-	useEffect(() => {
-		if (terminalJustSubscribed.current) {
-			terminalJustSubscribed.current = false;
-			return;
-		}
-
-		const filters: FilterOptions = {
-			league: leagueFilter.length > 0 ? leagueFilter : null,
-			game_time: gameTimeFilter || null,
-			sportsbooks: sportsbookFilter.length > 0 ? sportsbookFilter : null
-		};
-
-		console.log('Updating terminal WebSocket filters:', filters);
-		wsService.updateFilters('terminal', filters);
-
-	}, [leagueFilter, gameTimeFilter, sportsbookFilter]);
 
 	// Update arb filters dynamically (separate from terminal filters)
 	// Debounced to prevent overwhelming WebSocket when slider is dragged rapidly
