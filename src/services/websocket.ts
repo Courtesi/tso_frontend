@@ -133,12 +133,12 @@ export class WebSocketService {
 				stream,
 				filters
 			});
+			this.activeSubscriptions.set(stream, { filters: { ...filters } });
 		} else {
 			// Connection not ready, store for later
+			// auth_success will flush pendingSubscriptions and move them to activeSubscriptions
 			this.pendingSubscriptions.set(stream, { filters, callback: onMessage });
 		}
-
-		this.activeSubscriptions.set(stream, { filters: { ...filters } });
 	}
 
 	updateFilters(stream: StreamType, filters: FilterOptions): void {
@@ -203,6 +203,7 @@ export class WebSocketService {
 					this.activeSubscriptions.forEach(({ filters }, stream) => {
 						if (this.onMessageCallbacks.has(stream)) {
 							this.send({ type: 'subscribe', stream, filters });
+							console.log(`Re-subscribed to ${stream}`);
 						}
 					});
 
@@ -242,7 +243,6 @@ export class WebSocketService {
 					break;
 
 				case 'pong':
-					// Received pong, clear timeout
 					if (this.pongTimeout) {
 						clearTimeout(this.pongTimeout);
 						this.pongTimeout = null;

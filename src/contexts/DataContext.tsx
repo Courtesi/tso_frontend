@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { wsService, type ConnectionStatus, type FilterOptions } from '../services/websocket';
 import type { ArbitrageBet } from '../types/arbs';
@@ -138,12 +137,6 @@ function getEvFingerprint(ev: EVBet): string {
 
 export function DataProvider({ children }: { children: ReactNode }) {
 	const { currentUser } = useAuth();
-	const location = useLocation();
-
-	// Determine which data streams should be active based on current route
-	const shouldFetchArbs = location.pathname === '/dashboard';
-	const shouldFetchCharts = location.pathname === '/charts';
-	const shouldFetchEv = location.pathname === '/ev-bets';
 
 	// Arbitrage state
 	const [arbData, setArbData] = useState<ArbitrageBet[]>([]);
@@ -186,6 +179,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
 	const terminalJustSubscribed = useRef(false);
 	const arbsJustSubscribed = useRef(false);
 	const evJustSubscribed = useRef(false);
+
+	// Ref to keep terminal filter values current inside the persistent subscribe callback
+	const chartsFilterRef = useRef({ leagueFilter, gameTimeFilter, sportsbookFilter });
+	useEffect(() => {
+		chartsFilterRef.current = { leagueFilter, gameTimeFilter, sportsbookFilter };
+	}, [leagueFilter, gameTimeFilter, sportsbookFilter]);
 
 	// Pinned arbs state (stores full arb objects for stale display)
 	const [pinnedArbs, setPinnedArbs] = useState<Map<string, ArbitrageBet>>(() => loadPinnedArbs());
@@ -320,9 +319,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [currentUser?.uid]);
 
-	// Subscribe to arbitrage stream when on /dashboard
+	// Subscribe to arbitrage stream (persistent — stays active for the entire session)
 	useEffect(() => {
-		if (!currentUser || !shouldFetchArbs || connectionStatus !== 'connected') return;
+		if (!currentUser) return;
 
 		console.log('Subscribing to arbs stream');
 		if (arbData.length === 0) setArbLoading(true);
@@ -431,18 +430,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
 			setArbLoading(false);
 		});
 
-		// Cleanup on unmount or when leaving dashboard
 		return () => {
-			console.log('Unsubscribing from arbs stream');
 			wsService.unsubscribe('arbs');
 		};
-		// sportsbookFilter is intentionally omitted - filter updates are handled by the updateFilters effect below
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [currentUser?.uid, shouldFetchArbs, connectionStatus]);
+	}, [currentUser?.uid]);
 
-	// Subscribe to terminal stream when on /charts
+	// Subscribe to terminal stream (persistent — stays active for the entire session)
 	useEffect(() => {
-		if (!currentUser || !shouldFetchCharts || connectionStatus !== 'connected') return;
+		if (!currentUser) return;
 
 		console.log('Subscribing to terminal stream with filters:', {
 			league: leagueFilter,
@@ -481,7 +477,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 			setChartsLoading(false);
 
 			// Cache the received data for instant filter switching
-			const cacheKey = `${leagueFilter.length > 0 ? leagueFilter.join(',') : 'all'}:${gameTimeFilter || 'all'}:${sportsbookFilter.join(',')}`;
+			const { leagueFilter: lf, gameTimeFilter: gtf, sportsbookFilter: sf } = chartsFilterRef.current;
+			const cacheKey = `${lf.length > 0 ? lf.join(',') : 'all'}:${gtf || 'all'}:${sf.join(',')}`;
 			setCachedChartsData(prev => {
 				const newCache = new Map(prev);
 				newCache.set(cacheKey, {
@@ -501,20 +498,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
 			});
 		});
 
-		// Cleanup on unmount or when leaving charts
 		return () => {
-			console.log('Unsubscribing from terminal stream');
 			wsService.unsubscribe('terminal');
 		};
-		// Filter values and cache are intentionally omitted - filter updates are handled by the updateFilters effect below
-		// cachedChartsData and chartsData.length are only read on initial subscription, not tracked for changes
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [currentUser?.uid, shouldFetchCharts, connectionStatus]);
+	}, [currentUser?.uid]);
 
 	// Update terminal filters dynamically when they change (NO reconnection needed)
 	useEffect(() => {
-		if (connectionStatus !== 'connected' || !shouldFetchCharts) return;
-
 		if (terminalJustSubscribed.current) {
 			terminalJustSubscribed.current = false;
 			return;
@@ -529,13 +520,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		console.log('Updating terminal WebSocket filters:', filters);
 		wsService.updateFilters('terminal', filters);
 
-	}, [leagueFilter, gameTimeFilter, sportsbookFilter, connectionStatus, shouldFetchCharts]);
+	}, [leagueFilter, gameTimeFilter, sportsbookFilter]);
 
 	// Update arb filters dynamically (separate from terminal filters)
 	// Debounced to prevent overwhelming WebSocket when slider is dragged rapidly
 	useEffect(() => {
-		if (connectionStatus !== 'connected' || !shouldFetchArbs) return;
-
 		if (arbsJustSubscribed.current) {
 			arbsJustSubscribed.current = false;
 			return;
@@ -557,11 +546,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		}, 300);
 
 		return () => clearTimeout(timeoutId);
-	}, [arbLeagueFilter, arbMinProfitFilter, arbMaxProfitFilter, arbMarketTypeFilter, arbSportsbookFilter, connectionStatus, shouldFetchArbs]);
+	}, [arbLeagueFilter, arbMinProfitFilter, arbMaxProfitFilter, arbMarketTypeFilter, arbSportsbookFilter]);
 
-	// Subscribe to EV stream when on /ev-bets
+	// Subscribe to EV stream (persistent — stays active for the entire session)
 	useEffect(() => {
-		if (!currentUser || !shouldFetchEv || connectionStatus !== 'connected') return;
+		if (!currentUser) return;
 
 		console.log('Subscribing to EV stream');
 		if (evData.length === 0) setEvLoading(true);
@@ -669,19 +658,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
 			setEvLoading(false);
 		});
 
-		// Cleanup on unmount or when leaving ev-bets page
 		return () => {
-			console.log('Unsubscribing from EV stream');
 			wsService.unsubscribe('ev');
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [currentUser?.uid, shouldFetchEv, connectionStatus]);
+	}, [currentUser?.uid]);
 
 	// Update EV filters dynamically
 	// Debounced to prevent overwhelming WebSocket when slider is dragged rapidly
 	useEffect(() => {
-		if (connectionStatus !== 'connected' || !shouldFetchEv) return;
-
 		if (evJustSubscribed.current) {
 			evJustSubscribed.current = false;
 			return;
@@ -700,7 +685,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		}, 300);
 
 		return () => clearTimeout(timeoutId);
-	}, [evLeagueFilter, evMinEvFilter, evConfidenceFilter, evSportsbookFilter, connectionStatus, shouldFetchEv]);
+	}, [evLeagueFilter, evMinEvFilter, evConfidenceFilter, evSportsbookFilter]);
 
 	// Helper function to check if a pinned arb is stale (not in latest incoming data)
 	const isArbStale = useCallback((arbId: string): boolean => {
