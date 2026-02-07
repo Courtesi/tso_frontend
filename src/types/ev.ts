@@ -11,7 +11,7 @@ export interface EVBetSide {
 	team: string;
 	odds: number;
 	sportsbook: string;
-	implied_probability: number;
+	probability: number;
 	link: string | null;
 }
 
