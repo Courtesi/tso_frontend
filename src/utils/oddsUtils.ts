@@ -6,7 +6,7 @@ type DetectedFormat = 'american' | 'decimal' | 'fractional' | 'probability';
  * Detect the format of input odds
  * - Fractional: string containing "/" (e.g., "3/2", "10/11")
  * - Probability: number between 0 and 1 exclusive (e.g., 0.40)
- * - American: number >= 100 or <= -100 (e.g., +150, -110)
+ * - American: any negative number, or >= 100 (e.g., +150, -110, -98)
  * - Decimal: number > 1 and < 100 (e.g., 1.91, 2.50)
  */
 function detectOddsFormat(odds: number | string): DetectedFormat {
@@ -22,8 +22,9 @@ function detectOddsFormat(odds: number | string): DetectedFormat {
 		return 'probability';
 	}
 
-	// American: >= 100 or <= -100
-	if (numOdds >= 100 || numOdds <= -100) {
+	// American: any negative value (decimal odds are always positive),
+	// or >= 100 (standard American positive odds)
+	if (numOdds < 0 || numOdds >= 100) {
 		return 'american';
 	}
 
