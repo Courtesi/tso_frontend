@@ -65,8 +65,8 @@ export class WebSocketService {
 	}
 
 	async connect(token: string): Promise<void> {
-		if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-			console.log('WebSocket already connected');
+		if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+			console.log('WebSocket already connected or connecting');
 			return;
 		}
 

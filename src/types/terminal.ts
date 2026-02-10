@@ -25,20 +25,58 @@ export interface GameTerminalData {
 	league: string;
 	home_team: string;
 	away_team: string;
-	matchup: string;
+	matchup: string; // Not in Raw
 	start_time: string;
-	game_status: string;
+	game_status: string; // Not in Raw
 	markets: MarketLines[];
 }
 
 export interface TerminalPayload {
 	tier: string;
 	data: GameTerminalData[];
-	metadata?: {
+	metadata: {
 		count: number;
-		league: string;
-		game_time: string;
 	};
 	cached_at?: string;
 	message?: string;
+}
+
+// RAW DATA WITH REST ENDPOINT + WEBSOCKET (sportsbook:*:bets) SUBSCRIBE
+
+export interface RawEventData {
+	event_id: string;
+	sport: string;
+	home_team: string;
+	away_team: string;
+	start_time: string;
+	markets: RawMarketData[];
+}
+
+export interface RawMarketData {
+	market_id: string;
+	market_type: string;
+	strike_value: string;
+	outcomes: RawOutcomeData[];
+}
+
+export interface RawOutcomeData {
+	outcome_id: string;
+	outcome: string;
+	odds: number;
+	probability: number;
+	sportsbook: string;
+	last_updated: string;
+	liquidity?: number;
+	volume?: number;
+	link?: string;
+}
+
+export interface SportsbookUpdate {
+	type: string;
+	stream: string;
+	data: RawEventData[];
+	metadata: {
+		sportsbook: string;
+		timestamp: number;
+	}
 }

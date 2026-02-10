@@ -2,9 +2,11 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef, us
 import { useAuth } from './AuthContext';
 import { wsService, type ConnectionStatus, type FilterOptions } from '../services/websocket';
 import type { ArbitrageBet } from '../types/arbs';
-import type { GameTerminalData } from '../types/terminal';
+import type { GameTerminalData, RawEventData } from '../types/terminal';
 import type { EVBet } from '../types/ev';
 import { applyTerminalFilters } from '../utils/terminalFilters';
+import { api } from '../services/api';
+import { appendSportsbookUpdate } from '../utils/terminalMerge';
 
 const PINNED_ARBS_STORAGE_KEY = 'pinnedArbs';
 const PINNED_EV_BETS_STORAGE_KEY = 'pinnedEvBets';
@@ -457,11 +459,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		}
 		setChartsError('');
 
-		wsService.subscribe('terminal', {}, (data) => {
-			const terminalData = data.data as GameTerminalData[];
-			setRawChartsData(terminalData);
-			setChartsError('');
+		api.getTerminalLines().then(data => {
+			setRawChartsData(data.data);
 			setChartsLoading(false);
+		});
+
+		wsService.subscribe('terminal', {}, (payload) => {
+			const timestamp = payload.timestamp as number;
+			const rawEvents = payload.data as RawEventData[];
+			setRawChartsData(prev => appendSportsbookUpdate(prev, timestamp, rawEvents));
+			setChartsError('');
 		});
 
 		return () => {

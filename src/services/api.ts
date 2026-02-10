@@ -1,4 +1,5 @@
 import { auth } from '../config/firebase';
+import type { TerminalPayload } from '../types/terminal';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -148,6 +149,10 @@ class ApiService {
 			// Don't set Content-Type - browser will set it with correct boundary for FormData
 			body: request,
 		});
+	}
+
+	async getTerminalLines(): Promise<TerminalPayload> {
+		return this.protectedRequest('/api/terminal/lines');
 	}
 }
 
