@@ -32,5 +32,24 @@ export function applyTerminalFilters(
     );
   }
 
+  // Only show games with data from 3+ distinct sportsbooks
+  filtered = filtered.filter(game => {
+    const sportsbooks = new Set<string>();
+    for (const market of game.markets) {
+      for (const outcome of market.outcomes) {
+        if (outcome.history_by_sportsbook) {
+          for (const sb of Object.keys(outcome.history_by_sportsbook)) {
+            sportsbooks.add(sb.toLowerCase());
+          }
+        } else {
+          for (const point of outcome.history) {
+            sportsbooks.add(point.sportsbook.toLowerCase());
+          }
+        }
+      }
+    }
+    return sportsbooks.size >= 3;
+  });
+
   return filtered;
 }
