@@ -99,12 +99,9 @@ function Charts() {
 		}
 	};
 
-	const handleLeagueToggle = (league: string) => {
-		if (leagueFilter.includes(league)) {
-			setLeagueFilter(leagueFilter.filter(l => l !== league));
-		} else {
-			setLeagueFilter([...leagueFilter, league]);
-		}
+	const handleLeagueSelect = (league: string) => {
+		setLeagueFilter(league);
+		setLeagueDropdownOpen(false);
 	};
 
 	if (authLoading) {
@@ -129,11 +126,11 @@ function Charts() {
 					{userTier === 'free' && tierConfig.free && (
 						<div className="bg-yellow-900 bg-opacity-50 border border-yellow-500 rounded-lg p-4 mb-6">
 							<p className="text-yellow-200 text-sm">
-								Free tier: {tierConfig.free.allowed_leagues?.join('/') || 'All leagues'} only, up to {tierConfig.free.max_games || 'unlimited'} games.{' '}
+								Free tier: {tierConfig.free.allowed_leagues?.join('/') || 'All leagues'} only.{' '}
 								<a href="/pricing" className="underline font-semibold">
 									Upgrade to Premium
 								</a>{' '}
-								for all leagues, unlimited games, and real-time updates.
+								for all leagues and real-time updates.
 							</p>
 						</div>
 					)}
@@ -219,11 +216,7 @@ function Charts() {
 											}}
 											className="w-full bg-black border border-gray-400 text-white px-3 py-1.5 h-[34px] rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between text-sm"
 										>
-											<span>
-												{leagueFilter.length === 0
-													? 'All Leagues'
-													: `${leagueFilter.length} selected`}
-											</span>
+											<span>{leagueFilter}</span>
 											<svg
 												className={`w-4 h-4 ml-2 transition-transform ${leagueDropdownOpen ? 'rotate-180' : ''}`}
 												fill="none"
@@ -236,35 +229,25 @@ function Charts() {
 
 										{leagueDropdownOpen && (
 											<div className="absolute top-full left-0 right-0 mt-1 bg-gray-900 rounded-lg shadow-lg z-50">
-												{leagueFilter.length > 0 && (
-													<button
-														onClick={() => setLeagueFilter([])}
-														className="w-full text-left px-3 py-2 text-xs text-indigo-400 hover:text-indigo-300 hover:bg-gray-600 border-b border-gray-600 cursor-pointer"
-													>
-														Clear all
-													</button>
-												)}
 												<div className="py-1 max-h-60 overflow-y-auto">
 													{allLeagues.map(league => {
 														const isLocked = userTier === 'free' && tierConfig.free?.allowed_leagues && !tierConfig.free.allowed_leagues.includes(league);
+														const isSelected = leagueFilter === league;
 														return (
-															<label
+															<button
 																key={league}
-																className={`flex items-center gap-2 px-3 py-2 ${
-																	isLocked ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-gray-600'
+																onClick={() => !isLocked && handleLeagueSelect(league)}
+																disabled={isLocked || false}
+																className={`w-full text-left px-3 py-2 text-sm ${
+																	isLocked
+																		? 'cursor-not-allowed text-gray-500'
+																		: isSelected
+																			? 'bg-indigo-600 text-white'
+																			: 'text-white cursor-pointer hover:bg-gray-600'
 																}`}
 															>
-																<input
-																	type="checkbox"
-																	checked={leagueFilter.includes(league)}
-																	onChange={() => !isLocked && handleLeagueToggle(league)}
-																	disabled={isLocked || false}
-																	className="w-4 h-4 text-indigo-600 bg-gray-800 border-gray-600 rounded focus:ring-indigo-500"
-																/>
-																<span className={`text-sm ${isLocked ? 'text-gray-500' : 'text-white'}`}>
-																	{league}{isLocked ? ' (Premium)' : ''}
-																</span>
-															</label>
+																{league}{isLocked ? ' (Premium)' : ''}
+															</button>
 														);
 													})}
 												</div>

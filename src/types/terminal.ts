@@ -41,6 +41,14 @@ export interface TerminalPayload {
 	message?: string;
 }
 
+// Line update from WS (lines:{league} channel)
+export interface LineUpdate {
+	event_id: string;
+	market_type: string;
+	outcome_name: string;
+	point: LineDataPoint;
+}
+
 // RAW DATA WITH REST ENDPOINT + WEBSOCKET (sportsbook:*:bets) SUBSCRIBE
 
 export interface RawEventData {

@@ -2,11 +2,11 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef, us
 import { useAuth } from './AuthContext';
 import { wsService, type ConnectionStatus, type FilterOptions } from '../services/websocket';
 import type { ArbitrageBet } from '../types/arbs';
-import type { GameTerminalData, RawEventData } from '../types/terminal';
+import type { GameTerminalData, LineUpdate } from '../types/terminal';
 import type { EVBet } from '../types/ev';
 import { applyTerminalFilters } from '../utils/terminalFilters';
 import { api } from '../services/api';
-import { appendSportsbookUpdate } from '../utils/terminalMerge';
+import { appendLineUpdates } from '../utils/terminalMerge';
 
 const PINNED_ARBS_STORAGE_KEY = 'pinnedArbs';
 const PINNED_EV_BETS_STORAGE_KEY = 'pinnedEvBets';
@@ -30,8 +30,8 @@ interface DataContextType {
 	evError: string;
 
 	// Filters for charts
-	leagueFilter: string[];
-	setLeagueFilter: (leagues: string[]) => void;
+	leagueFilter: string;
+	setLeagueFilter: (league: string) => void;
 	gameTimeFilter: string;
 	setGameTimeFilter: (gameTime: string) => void;
 	sportsbookFilter: string[];
@@ -152,13 +152,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
 	const [chartsError, setChartsError] = useState('');
 	const [selectedGame, setSelectedGame] = useState<GameTerminalData | null>(null);
 
+	// Per-league cache: skip API call if data was fetched recently
+	const LEAGUE_CACHE_TTL = 60_000; // 1 minute
+	const leagueCache = useRef<Map<string, { data: GameTerminalData[]; fetchedAt: number }>>(new Map());
+	const rawChartsDataRef = useRef<GameTerminalData[]>(rawChartsData);
+	useEffect(() => { rawChartsDataRef.current = rawChartsData; }, [rawChartsData]);
+
 	// EV state
 	const [evData, setEvData] = useState<EVBet[]>([]);
 	const [evLoading, setEvLoading] = useState(false);
 	const [evError, setEvError] = useState('');
 
 	// Filters for charts
-	const [leagueFilter, setLeagueFilter] = useState<string[]>([]);
+	const [leagueFilter, setLeagueFilter] = useState<string>('NBA');
 	const [gameTimeFilter, setGameTimeFilter] = useState<string>('upcoming');
 	const [sportsbookFilter, setSportsbookFilter] = useState<string[]>([]);
 
@@ -279,9 +285,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
 	}, [pinnedEvBets]);
 
 	// Derive filtered chartsData from raw server data + user-preference filters
+	// League filtering is handled server-side via the league query param
 	const chartsData = useMemo(
-		() => applyTerminalFilters(rawChartsData, leagueFilter, gameTimeFilter, sportsbookFilter),
-		[rawChartsData, leagueFilter, gameTimeFilter, sportsbookFilter]
+		() => applyTerminalFilters(rawChartsData, gameTimeFilter, sportsbookFilter),
+		[rawChartsData, gameTimeFilter, sportsbookFilter]
 	);
 
 	// Update selectedGame when chartsData changes (filter change or new server data)
@@ -448,34 +455,43 @@ export function DataProvider({ children }: { children: ReactNode }) {
 	}, [currentUser?.uid]);
 
 	// Subscribe to terminal stream (persistent — stays active for the entire session)
-	// No user-preference filters sent — filtering is done client-side via useMemo
+	// League filtering is handled server-side; re-fetch when league changes
 	useEffect(() => {
 		if (!currentUser) return;
 
-		console.log('Subscribing to terminal stream (no user-preference filters — filtered client-side)');
+		const cache = leagueCache.current;
 
-		if (rawChartsData.length === 0) {
-			setChartsLoading(true);
-		}
 		setChartsError('');
 
-		api.getTerminalLines().then(data => {
-			setRawChartsData(data.data);
-			setChartsLoading(false);
-		});
+		// Check league cache before hitting the API
+		const cached = cache.get(leagueFilter);
+		if (cached && Date.now() - cached.fetchedAt < LEAGUE_CACHE_TTL) {
+			setRawChartsData(cached.data);
+		} else {
+			setChartsLoading(true);
+			api.getTerminalLines(leagueFilter).then(data => {
+				setRawChartsData(data.data);
+				cache.set(leagueFilter, { data: data.data, fetchedAt: Date.now() });
+				setChartsLoading(false);
+			});
+		}
 
-		wsService.subscribe('terminal', {}, (payload) => {
-			const timestamp = payload.timestamp as number;
-			const rawEvents = payload.data as RawEventData[];
-			setRawChartsData(prev => appendSportsbookUpdate(prev, timestamp, rawEvents));
+		wsService.subscribe('terminal', { league: leagueFilter }, (payload) => {
+			const updates = payload.data as LineUpdate[];
+			setRawChartsData(prev => appendLineUpdates(prev, updates));
 			setChartsError('');
 		});
 
 		return () => {
+			// Save current data (includes WS updates) to cache before switching away
+			cache.set(leagueFilter, {
+				data: rawChartsDataRef.current,
+				fetchedAt: Date.now(),
+			});
 			wsService.unsubscribe('terminal');
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [currentUser?.uid]);
+	}, [currentUser?.uid, leagueFilter]);
 
 	// Update arb filters dynamically (separate from terminal filters)
 	// Debounced to prevent overwhelming WebSocket when slider is dragged rapidly

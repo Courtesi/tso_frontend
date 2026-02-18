@@ -26,7 +26,6 @@ export interface TierInfo {
 	features: string[];
 	// Tier limits
 	allowed_leagues: string[] | null; // null means all leagues
-	max_games: number | null; // null means unlimited
 	max_arbs: number | null; // null means unlimited
 }
 
@@ -151,8 +150,8 @@ class ApiService {
 		});
 	}
 
-	async getTerminalLines(): Promise<TerminalPayload> {
-		return this.protectedRequest('/api/terminal/lines');
+	async getTerminalLines(league: string): Promise<TerminalPayload> {
+		return this.protectedRequest(`/api/terminal/lines?league=${encodeURIComponent(league)}`);
 	}
 }
 
