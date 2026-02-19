@@ -150,8 +150,12 @@ class ApiService {
 		});
 	}
 
-	async getTerminalLines(league: string): Promise<TerminalPayload> {
-		return this.protectedRequest(`/api/terminal/lines?league=${encodeURIComponent(league)}`);
+	async getTerminalOdds(league: string): Promise<TerminalPayload> {
+		return this.protectedRequest(`/api/terminal/odds?league=${encodeURIComponent(league)}`);
+	}
+
+	async getGameHistory(eventId: string, league: string): Promise<{ data: import('../types/terminal').GameTerminalData; tier: string }> {
+		return this.protectedRequest(`/api/terminal/lines/${encodeURIComponent(eventId)}?league=${encodeURIComponent(league)}`);
 	}
 }
 

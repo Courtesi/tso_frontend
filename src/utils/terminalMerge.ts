@@ -1,6 +1,83 @@
 import type { GameTerminalData, LineUpdate } from '../types/terminal';
 
 /**
+ * Merges a fully-hydrated GameTerminalData (from history REST fetch) into
+ * an existing games array, replacing the matching game's markets/outcomes
+ * with full history while preserving any WS updates that arrived after the
+ * odds-only load.
+ */
+export function mergeGameHistory(
+	existing: GameTerminalData[],
+	hydrated: GameTerminalData,
+): GameTerminalData[] {
+	const idx = existing.findIndex(g => g.event_id === hydrated.event_id);
+	if (idx === -1) {
+		// Game not in list yet — append it
+		return [...existing, hydrated];
+	}
+
+	const updated = [...existing];
+	const existingGame = existing[idx];
+
+	// Merge history-hydrated markets into the existing game.
+	// For each outcome in the hydrated response, also carry over any WS-appended
+	// points that arrived after the history window (history_by_sportsbook from
+	// the existing game may have more recent entries than the REST response).
+	const mergedMarkets = hydrated.markets.map(hydratedMarket => {
+		const existingMarket = existingGame.markets.find(
+			m => m.market_type === hydratedMarket.market_type
+		);
+
+		const mergedOutcomes = hydratedMarket.outcomes.map(hydratedOutcome => {
+			const existingOutcome = existingMarket?.outcomes.find(
+				o => o.outcome_id === hydratedOutcome.outcome_id
+			);
+
+			if (!existingOutcome) return hydratedOutcome;
+
+			// Append any WS points that are newer than the history window
+			const latestHistoryTs = hydratedOutcome.history.length > 0
+				? Math.max(...hydratedOutcome.history.map(p => p.timestamp))
+				: 0;
+
+			const mergedHistoryBySportsbook = { ...hydratedOutcome.history_by_sportsbook };
+			const additionalHistory: typeof hydratedOutcome.history = [];
+
+			for (const [sb, sbHistory] of Object.entries(
+				existingOutcome.history_by_sportsbook ?? {}
+			)) {
+				const newPoints = sbHistory.filter(p => p.timestamp > latestHistoryTs);
+				if (newPoints.length > 0) {
+					mergedHistoryBySportsbook[sb] = [
+						...(mergedHistoryBySportsbook[sb] ?? []),
+						...newPoints,
+					];
+					additionalHistory.push(...newPoints);
+				}
+			}
+
+			const mergedHistory = [...hydratedOutcome.history, ...additionalHistory].sort(
+				(a, b) => a.timestamp - b.timestamp
+			);
+			const latest = mergedHistory[mergedHistory.length - 1];
+
+			return {
+				...hydratedOutcome,
+				history: mergedHistory,
+				history_by_sportsbook: mergedHistoryBySportsbook,
+				current_best_odds: latest?.odds ?? hydratedOutcome.current_best_odds,
+				current_best_sportsbook: latest?.sportsbook ?? hydratedOutcome.current_best_sportsbook,
+			};
+		});
+
+		return { ...hydratedMarket, outcomes: mergedOutcomes };
+	});
+
+	updated[idx] = { ...existingGame, markets: mergedMarkets };
+	return updated;
+}
+
+/**
  * Appends line updates (from lines:{league} WS channel) to existing terminal chart state.
  * Each update directly identifies its target by event_id + market_type + outcome_name.
  * Returns a new array with updated data (immutable).
@@ -51,6 +128,14 @@ export function appendLineUpdates(
 		outcome.history_by_sportsbook = { ...outcome.history_by_sportsbook };
 		const sbHistory = outcome.history_by_sportsbook[update.point.sportsbook] || [];
 		outcome.history_by_sportsbook[update.point.sportsbook] = [...sbHistory, update.point];
+
+		// Keep latest_by_sportsbook in sync for the odds table (populated by /terminal/odds)
+		if (outcome.latest_by_sportsbook) {
+			outcome.latest_by_sportsbook = {
+				...outcome.latest_by_sportsbook,
+				[update.point.sportsbook]: update.point.odds,
+			};
+		}
 
 		outcome.current_best_odds = update.point.odds;
 		outcome.current_best_sportsbook = update.point.sportsbook;

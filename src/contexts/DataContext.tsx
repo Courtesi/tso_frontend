@@ -6,7 +6,7 @@ import type { GameTerminalData, LineUpdate } from '../types/terminal';
 import type { EVBet } from '../types/ev';
 import { applyTerminalFilters } from '../utils/terminalFilters';
 import { api } from '../services/api';
-import { appendLineUpdates } from '../utils/terminalMerge';
+import { appendLineUpdates, mergeGameHistory } from '../utils/terminalMerge';
 
 const PINNED_ARBS_STORAGE_KEY = 'pinnedArbs';
 const PINNED_EV_BETS_STORAGE_KEY = 'pinnedEvBets';
@@ -23,6 +23,8 @@ interface DataContextType {
 	chartsError: string;
 	selectedGame: GameTerminalData | null;
 	setSelectedGame: (game: GameTerminalData | null) => void;
+	getGameHistory: (eventId: string, league: string) => Promise<void>;
+	loadedHistoryGames: Set<string>;
 
 	// EV data
 	evData: EVBet[];
@@ -157,6 +159,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
 	const leagueCache = useRef<Map<string, { data: GameTerminalData[]; fetchedAt: number }>>(new Map());
 	const rawChartsDataRef = useRef<GameTerminalData[]>(rawChartsData);
 	useEffect(() => { rawChartsDataRef.current = rawChartsData; }, [rawChartsData]);
+
+	// Track which games have had their full history loaded (per event_id)
+	const [loadedHistoryGames, setLoadedHistoryGames] = useState<Set<string>>(new Set());
 
 	// EV state
 	const [evData, setEvData] = useState<EVBet[]>([]);
@@ -462,6 +467,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		const cache = leagueCache.current;
 
 		setChartsError('');
+		// Reset loaded history tracking when league changes
+		setLoadedHistoryGames(new Set());
 
 		// Check league cache before hitting the API
 		const cached = cache.get(leagueFilter);
@@ -469,7 +476,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 			setRawChartsData(cached.data);
 		} else {
 			setChartsLoading(true);
-			api.getTerminalLines(leagueFilter).then(data => {
+			api.getTerminalOdds(leagueFilter).then(data => {
 				setRawChartsData(data.data);
 				cache.set(leagueFilter, { data: data.data, fetchedAt: Date.now() });
 				setChartsLoading(false);
@@ -668,6 +675,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		return staleEvIds.has(evId);
 	}, [staleEvIds]);
 
+	// Fetch full history for a single game and merge into state (called on chart expand)
+	const getGameHistory = useCallback(async (eventId: string, league: string): Promise<void> => {
+		if (loadedHistoryGames.has(eventId)) return;
+		try {
+			const response = await api.getGameHistory(eventId, league);
+			setRawChartsData(prev => mergeGameHistory(prev, response.data));
+			setLoadedHistoryGames(prev => new Set([...prev, eventId]));
+			// Update cache with hydrated data so it survives league switches
+			const cache = leagueCache.current;
+			const cached = cache.get(league);
+			if (cached) {
+				cache.set(league, { data: rawChartsDataRef.current, fetchedAt: cached.fetchedAt });
+			}
+		} catch (err) {
+			console.error(`Failed to load history for ${eventId}:`, err);
+		}
+	}, [loadedHistoryGames]);
+
 	const value = {
 		arbData,
 		arbLoading,
@@ -677,6 +702,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 		chartsError,
 		selectedGame,
 		setSelectedGame,
+		getGameHistory,
+		loadedHistoryGames,
 		evData,
 		evLoading,
 		evError,

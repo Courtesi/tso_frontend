@@ -1,8 +1,9 @@
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { type SportsbookInfo, api } from '../services/api';
 import type { GameTerminalData, OutcomeLine, LineDataPoint } from '../types/terminal';
 import { useSettings, type OddsFormat } from '../contexts/SettingsContext';
 import { formatOdds } from '../utils/oddsUtils';
+import GameChart from './GameChart';
 
 // Cache sportsbook config at module level
 let sportsbooksCache: Record<string, SportsbookInfo> | null = null;
@@ -10,6 +11,16 @@ let sportsbooksCache: Record<string, SportsbookInfo> | null = null;
 interface OddsScreenProps {
 	game: GameTerminalData;
 	outcomes: OutcomeLine[];
+	// Chart expansion props
+	onExpandChart?: () => void;
+	historyLoaded?: boolean;
+	historyLoading?: boolean;
+}
+
+interface ExpandableOddsScreenProps {
+	game: GameTerminalData;
+	onExpandChart: () => void;
+	historyLoaded: boolean;
 }
 
 /**
@@ -20,19 +31,13 @@ function getOddsChangeColor(currentOdds: number, previousOdds: number): string {
 	const change = currentOdds - previousOdds;
 	if (change === 0) return 'transparent';
 
-	// Positive change = odds went up (green), negative = went down (red)
 	const isPositiveChange = change > 0;
-
-	// Calculate subtle intensity (0-1) based on magnitude
 	const absChange = Math.abs(change);
-	const intensity = Math.min(absChange / 30, 1); // Cap at 30 units for max intensity
+	const intensity = Math.min(absChange / 30, 1);
 
-	// HSL color tuned for dark gray background (bg-gray-700/50 ~ lightness 25-30%)
-	// Green: hsl(120, 25-50%, 20-30%)
-	// Red: hsl(0, 25-50%, 20-30%)
 	const hue = isPositiveChange ? 120 : 0;
-	const saturation = 25 + intensity * 25; // 25% to 50%
-	const lightness = 20 + intensity * 10; // 20% (subtle) to 30% (more visible)
+	const saturation = 25 + intensity * 25;
+	const lightness = 20 + intensity * 10;
 
 	return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
@@ -49,9 +54,18 @@ function getPreviousOdds(history: LineDataPoint[]): number | null {
  * Calculate average odds for an outcome across all sportsbooks
  */
 function calculateAverage(outcome: OutcomeLine): number | null {
-	if (!outcome.history_by_sportsbook) return null;
+	// Use latest_by_sportsbook (odds-only load) or history_by_sportsbook (history load)
+	const latestBySb = outcome.latest_by_sportsbook;
+	const historyBySb = outcome.history_by_sportsbook;
 
-	const currentOdds = Object.values(outcome.history_by_sportsbook)
+	if (latestBySb && Object.keys(latestBySb).length > 0) {
+		const values = Object.values(latestBySb).filter((o): o is number => o !== undefined);
+		if (values.length === 0) return null;
+		return values.reduce((a, b) => a + b, 0) / values.length;
+	}
+
+	if (!historyBySb) return null;
+	const currentOdds = Object.values(historyBySb)
 		.map(history => history[history.length - 1]?.odds)
 		.filter((odds): odds is number => odds !== undefined);
 
@@ -140,8 +154,10 @@ function OddsRow({
 
 			{/* Sportsbook columns */}
 			{sportsbooks.map(book => {
+				// Prefer latest_by_sportsbook (odds-only load) then fall back to history
+				const latestOdds = outcome.latest_by_sportsbook?.[book];
 				const history = outcome.history_by_sportsbook?.[book];
-				const currentOdds = history?.[history.length - 1]?.odds;
+				const currentOdds = latestOdds ?? history?.[history.length - 1]?.odds;
 				const previousOdds = history ? getPreviousOdds(history) : null;
 
 				const bgColor =
@@ -169,44 +185,41 @@ function OddsRow({
 	);
 }
 
-function OddsScreen({ game, outcomes }: OddsScreenProps) {
+function OddsTable({ game, outcomes }: { game: GameTerminalData; outcomes: OutcomeLine[] }) {
 	const { settings } = useSettings();
 	const oddsFormat = settings?.oddsFormat || 'american';
 	const [sportsbooks, setSportsbooks] = useState<Record<string, SportsbookInfo>>(sportsbooksCache || {});
 
-	// Fetch sportsbook config on mount
 	useEffect(() => {
 		if (sportsbooksCache) return;
-
 		api.getSportsbooks()
 			.then(response => {
 				sportsbooksCache = response.sportsbooks;
 				setSportsbooks(response.sportsbooks);
 			})
-			.catch(err => {
-				console.error('Failed to fetch sportsbooks config:', err);
-			});
+			.catch(err => console.error('Failed to fetch sportsbooks config:', err));
 	}, []);
 
-	// Helper function to get sportsbook icon path
 	const getSportsbookIcon = useCallback((sportsbookName: string): string | null => {
 		const normalized = sportsbookName.toLowerCase().replace(/\s+/g, '');
 		const sportsbookInfo = sportsbooks[normalized];
 		return sportsbookInfo ? `/sportsbook_icons/${sportsbookInfo.icon}` : null;
 	}, [sportsbooks]);
 
-	// Get all unique sportsbooks across all outcomes
+	// Collect all sportsbooks across outcomes (union of latest_by_sportsbook and history_by_sportsbook)
 	const allSportsbooks = useMemo(() => {
 		const books = new Set<string>();
 		outcomes.forEach(outcome => {
+			if (outcome.latest_by_sportsbook) {
+				Object.keys(outcome.latest_by_sportsbook).forEach(b => books.add(b));
+			}
 			if (outcome.history_by_sportsbook) {
-				Object.keys(outcome.history_by_sportsbook).forEach(book => books.add(book));
+				Object.keys(outcome.history_by_sportsbook).forEach(b => books.add(b));
 			}
 		});
 		return Array.from(books).sort();
 	}, [outcomes]);
 
-	// Get team display name from outcome
 	const getTeamName = (outcome: OutcomeLine): string => {
 		const parsedTeam = outcome.outcome_id.split('_')[0];
 		const homeTeam = game.home_team.toLowerCase().replace(/\s+/g, '');
@@ -222,69 +235,171 @@ function OddsScreen({ game, outcomes }: OddsScreenProps) {
 
 	if (allSportsbooks.length === 0) {
 		return (
-			<div className="bg-gray-700/50 rounded-lg p-4">
+			<div className="p-4">
 				<p className="text-gray-400 text-sm">No odds data available.</p>
 			</div>
 		);
 	}
 
 	return (
+		<div className="overflow-x-auto">
+			<table className="min-w-full">
+				<thead>
+					<tr className="border-b border-gray-600">
+						<th className="px-2 py-2 text-left text-xs font-semibold text-gray-300 min-w-[100px]" />
+						<th className="px-2 py-2 text-center text-xs font-semibold text-gray-300 min-w-[70px] border-l border-gray-600/50">
+							Date
+						</th>
+						<th className="px-2 py-2 text-center text-xs font-semibold text-gray-300 min-w-[60px] border-l border-gray-600/50">
+							Avg
+						</th>
+						{allSportsbooks.map(book => {
+							const iconPath = getSportsbookIcon(book);
+							return (
+								<th
+									key={book}
+									className="px-1 py-2 text-center min-w-[50px]"
+									title={book}
+								>
+									{iconPath ? (
+										<img
+											src={iconPath}
+											alt={book}
+											className="w-5 h-5 rounded object-contain mx-auto"
+										/>
+									) : (
+										<span className="text-xs font-semibold text-gray-300 truncate block max-w-[50px]">
+											{book.slice(0, 4)}
+										</span>
+									)}
+								</th>
+							);
+						})}
+					</tr>
+				</thead>
+				<tbody>
+					{outcomes.map((outcome, index) => (
+						<OddsRow
+							key={outcome.outcome_id}
+							outcome={outcome}
+							sportsbooks={allSportsbooks}
+							isFirstRow={index === 0}
+							totalRows={outcomes.length}
+							gameStartTime={game.start_time}
+							teamName={getTeamName(outcome)}
+							oddsFormat={oddsFormat}
+						/>
+					))}
+				</tbody>
+			</table>
+		</div>
+	);
+}
+
+/**
+ * ExpandableOddsScreen — a full game card with odds table + expandable chart.
+ * This is the primary export used by the Charts page.
+ */
+export function ExpandableOddsScreen({ game, onExpandChart, historyLoaded }: ExpandableOddsScreenProps) {
+	const [expanded, setExpanded] = useState(false);
+	const [historyLoading, setHistoryLoading] = useState(false);
+	const chartFetchedRef = useRef(false);
+
+	const moneylineMarket = game.markets.find(m => m.market_type === 'MONEY');
+	const outcomes = moneylineMarket?.outcomes ?? [];
+
+	const gameStatusBadge = () => {
+		if (game.game_status === 'live') {
+			return (
+				<span className="flex items-center gap-1 text-xs text-red-400 font-medium">
+					<span className="relative flex h-1.5 w-1.5">
+						<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+						<span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
+					</span>
+					Live
+				</span>
+			);
+		}
+		if (game.game_status === 'completed') {
+			return <span className="text-xs text-gray-500">Final</span>;
+		}
+		return null;
+	};
+
+	const handleToggle = async () => {
+		const willExpand = !expanded;
+		setExpanded(willExpand);
+
+		if (willExpand && !historyLoaded && !chartFetchedRef.current) {
+			chartFetchedRef.current = true;
+			setHistoryLoading(true);
+			await onExpandChart();
+			setHistoryLoading(false);
+		}
+	};
+
+	return (
+		<div className="bg-zinc-950 border border-gray-600 rounded-lg overflow-hidden">
+			{/* Game header — always visible */}
+			<button
+				onClick={handleToggle}
+				className="w-full flex items-center justify-between px-4 py-3 hover:bg-zinc-900 transition-colors cursor-pointer"
+			>
+				<div className="flex items-center gap-3 min-w-0">
+					<span className="text-sm font-semibold text-white truncate">
+						{game.away_team.replace(/_/g, ' ')} @ {game.home_team.replace(/_/g, ' ')}
+					</span>
+					<span className="text-xs text-gray-500 shrink-0">{game.league}</span>
+					{gameStatusBadge()}
+				</div>
+				<svg
+					className={`w-4 h-4 text-gray-400 shrink-0 ml-2 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
+					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+				</svg>
+			</button>
+
+			{/* Odds table — always visible */}
+			{outcomes.length > 0 && (
+				<OddsTable game={game} outcomes={outcomes} />
+			)}
+
+			{/* Expanded chart area */}
+			{expanded && (
+				<div className="border-t border-gray-600">
+					{historyLoading ? (
+						<div className="flex items-center justify-center py-12 text-gray-400 text-sm gap-2">
+							<svg className="animate-spin h-4 w-4 text-indigo-400" fill="none" viewBox="0 0 24 24">
+								<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+								<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+							</svg>
+							Loading chart history…
+						</div>
+					) : historyLoaded ? (
+						<div className="p-4">
+							<GameChart game={game} />
+						</div>
+					) : (
+						<div className="flex items-center justify-center py-12 text-gray-500 text-sm">
+							No history available.
+						</div>
+					)}
+				</div>
+			)}
+		</div>
+	);
+}
+
+/**
+ * Legacy OddsScreen — kept for use inside GameLineChart (odds table only, no expand).
+ */
+function OddsScreen({ game, outcomes }: OddsScreenProps) {
+	return (
 		<div className="bg-zinc-950 border border-gray-600 rounded-lg">
-			<div className="overflow-x-auto">
-				<table className="min-w-full">
-					<thead>
-						<tr className="border-b border-gray-600">
-							{/* Header for team column */}
-							<th className="px-2 py-2 text-left text-xs font-semibold text-gray-300 min-w-[100px]">
-								{/* No header text */}
-							</th>
-							{/* Header for date column */}
-							<th className="px-2 py-2 text-center text-xs font-semibold text-gray-300 min-w-[70px] border-l border-gray-600/50">
-								Date
-							</th>
-							<th className="px-2 py-2 text-center text-xs font-semibold text-gray-300 min-w-[60px] border-l border-gray-600/50">
-								Avg
-							</th>
-							{allSportsbooks.map(book => {
-								const iconPath = getSportsbookIcon(book);
-								return (
-									<th
-										key={book}
-										className="px-1 py-2 text-center min-w-[50px]"
-										title={book}
-									>
-										{iconPath ? (
-											<img
-												src={iconPath}
-												alt={book}
-												className="w-5 h-5 rounded object-contain mx-auto"
-											/>
-										) : (
-											<span className="text-xs font-semibold text-gray-300 truncate block max-w-[50px]">
-												{book.slice(0, 4)}
-											</span>
-										)}
-									</th>
-								);
-							})}
-						</tr>
-					</thead>
-					<tbody>
-						{outcomes.map((outcome, index) => (
-							<OddsRow
-								key={outcome.outcome_id}
-								outcome={outcome}
-								sportsbooks={allSportsbooks}
-								isFirstRow={index === 0}
-								totalRows={outcomes.length}
-								gameStartTime={game.start_time}
-								teamName={getTeamName(outcome)}
-								oddsFormat={oddsFormat}
-							/>
-						))}
-					</tbody>
-				</table>
-			</div>
+			<OddsTable game={game} outcomes={outcomes} />
 		</div>
 	);
 }

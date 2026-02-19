@@ -10,6 +10,7 @@ import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import ArbFilters from '../components/ArbFilters';
 import PinButton from '../components/PinButton';
+import { ArbTableSkeleton } from '../components/Skeletons';
 
 // Cache sportsbook config at module level to avoid refetching
 let sportsbooksCache: Record<string, SportsbookInfo> | null = null;
@@ -129,11 +130,7 @@ function Dashboard() {
 
 				{/* Data Display */}
 				<div className="max-w-7xl mx-auto bg-black border-2 border-gray-700 rounded-lg p-4">
-					{loading && (
-						<div className="text-center text-gray-400 py-12">
-							Loading arbitrage opportunities...
-						</div>
-					)}
+					{loading && <ArbTableSkeleton />}
 
 					{error && (
 						<div className="bg-red-900 bg-opacity-50 border border-red-500 rounded-lg p-4 text-red-200">

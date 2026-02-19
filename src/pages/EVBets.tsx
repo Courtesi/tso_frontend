@@ -10,6 +10,7 @@ import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import EVFilters from '../components/EVFilters';
 import PinButton from '../components/PinButton';
+import { EVTableSkeleton } from '../components/Skeletons';
 
 // Cache sportsbook config at module level to avoid refetching
 let sportsbooksCache: Record<string, SportsbookInfo> | null = null;
@@ -119,11 +120,7 @@ function EVBets() {
 
 				{/* Data Display */}
 				<div className="max-w-7xl mx-auto bg-black border-2 border-gray-700 rounded-lg p-4">
-					{evLoading && (
-						<div className="text-center text-gray-400 py-12">
-							Loading +EV betting opportunities...
-						</div>
-					)}
+					{evLoading && <EVTableSkeleton />}
 
 					{evError && (
 						<div className="bg-red-900 bg-opacity-50 border border-red-500 rounded-lg p-4 text-red-200">

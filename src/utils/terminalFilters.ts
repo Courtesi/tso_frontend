@@ -21,6 +21,7 @@ export function applyTerminalFilters(
           outcome.history.some(point =>
             sportsbooks.has(point.sportsbook.toLowerCase())
           )
+          || Object.keys(outcome.latest_by_sportsbook ?? {}).some(sb => sportsbooks.has(sb.toLowerCase()))
         )
       )
     );
@@ -40,6 +41,7 @@ export function applyTerminalFilters(
             sportsbooks.add(point.sportsbook.toLowerCase());
           }
         }
+        Object.keys(outcome.latest_by_sportsbook ?? {}).forEach(sb => sportsbooks.add(sb.toLowerCase()));
       }
     }
     return sportsbooks.size >= 3;

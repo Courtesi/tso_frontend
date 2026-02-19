@@ -11,6 +11,8 @@ export interface OutcomeLine {
 	current_best_odds: number;
 	current_best_sportsbook: string;
 	history_by_sportsbook?: Record<string, LineDataPoint[]>;
+	// Populated by /terminal/odds (latest odds per sportsbook, no history arrays)
+	latest_by_sportsbook?: Record<string, number>;
 }
 
 export interface MarketLines {
