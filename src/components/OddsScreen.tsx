@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { type SportsbookInfo, api } from '../services/api';
-import type { GameTerminalData, OutcomeLine, LineDataPoint } from '../types/terminal';
+import type { GameTerminalData, OutcomeLine } from '../types/terminal';
 import { useSettings, type OddsFormat } from '../contexts/SettingsContext';
 import { formatOdds } from '../utils/oddsUtils';
 import GameChart from './GameChart';
@@ -21,33 +21,6 @@ interface ExpandableOddsScreenProps {
 	game: GameTerminalData;
 	onExpandChart: () => void;
 	historyLoaded: boolean;
-}
-
-/**
- * Calculate the background color based on odds change.
- * Green for increase, red for decrease. Subtle intensity on dark gray background.
- */
-function getOddsChangeColor(currentOdds: number, previousOdds: number): string {
-	const change = currentOdds - previousOdds;
-	if (change === 0) return 'transparent';
-
-	const isPositiveChange = change > 0;
-	const absChange = Math.abs(change);
-	const intensity = Math.min(absChange / 30, 1);
-
-	const hue = isPositiveChange ? 120 : 0;
-	const saturation = 25 + intensity * 25;
-	const lightness = 20 + intensity * 10;
-
-	return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-}
-
-/**
- * Get the previous odds value from history
- */
-function getPreviousOdds(history: LineDataPoint[]): number | null {
-	if (history.length < 2) return null;
-	return history[history.length - 2].odds;
 }
 
 /**
@@ -121,6 +94,41 @@ function OddsRow({
 	const formattedDate = formatDate(gameStartTime);
 	const formattedTime = formatTime(gameStartTime);
 
+	// Track last-seen odds per book to detect real changes
+	const prevOddsRef = useRef<Map<string, number>>(new Map());
+	// Monotonically increasing counter per book; incrementing forces overlay remount
+	const generationRef = useRef<Map<string, number>>(new Map());
+	// Drives rendered flash overlays: book -> { direction, generation }
+	const [flashMap, setFlashMap] = useState<Map<string, { direction: 'up' | 'down'; generation: number }>>(new Map());
+
+	useEffect(() => {
+		const updates: Array<[string, { direction: 'up' | 'down'; generation: number }]> = [];
+
+		for (const book of sportsbooks) {
+			const latestOdds = outcome.latest_by_sportsbook?.[book];
+			const history = outcome.history_by_sportsbook?.[book];
+			const currentOdds = latestOdds ?? history?.[history.length - 1]?.odds;
+
+			if (currentOdds === undefined) continue;
+
+			const prevOdds = prevOddsRef.current.get(book);
+			if (prevOdds !== undefined && currentOdds !== prevOdds) {
+				const gen = (generationRef.current.get(book) ?? 0) + 1;
+				generationRef.current.set(book, gen);
+				updates.push([book, { direction: currentOdds > prevOdds ? 'up' : 'down', generation: gen }]);
+			}
+			prevOddsRef.current.set(book, currentOdds);
+		}
+
+		if (updates.length > 0) {
+			setFlashMap(prev => {
+				const next = new Map(prev);
+				for (const [book, info] of updates) next.set(book, info);
+				return next;
+			});
+		}
+	}, [outcome, sportsbooks]);
+
 	return (
 		<tr className="border-b border-gray-600/50 last:border-b-0">
 			{/* First column - team name */}
@@ -158,25 +166,25 @@ function OddsRow({
 				const latestOdds = outcome.latest_by_sportsbook?.[book];
 				const history = outcome.history_by_sportsbook?.[book];
 				const currentOdds = latestOdds ?? history?.[history.length - 1]?.odds;
-				const previousOdds = history ? getPreviousOdds(history) : null;
-
-				const bgColor =
-					previousOdds !== null && currentOdds !== undefined
-						? getOddsChangeColor(currentOdds, previousOdds)
-						: 'transparent';
+				const flash = flashMap.get(book);
 
 				return (
 					<td
 						key={book}
-						className="px-1 py-2 text-center transition-colors duration-300 min-w-[50px]"
-						style={{ backgroundColor: bgColor }}
+						className="relative px-1 py-2 text-center min-w-[50px]"
 					>
+						{flash && (
+							<div
+								key={`${book}-${flash.generation}`}
+								className={`absolute inset-0 ${flash.direction === 'up' ? 'animate-flash-green' : 'animate-flash-red'}`}
+							/>
+						)}
 						{currentOdds !== undefined ? (
-							<span className="font-medium text-white text-sm">
+							<span className="relative z-10 font-medium text-white text-sm">
 								{formatOdds(currentOdds, oddsFormat)}
 							</span>
 						) : (
-							<span className="text-gray-500">-</span>
+							<span className="relative z-10 text-gray-500">-</span>
 						)}
 					</td>
 				);
@@ -245,7 +253,7 @@ function OddsTable({ game, outcomes }: { game: GameTerminalData; outcomes: Outco
 		<div className="overflow-x-auto">
 			<table className="min-w-full">
 				<thead>
-					<tr className="border-b border-gray-600">
+					<tr className="border-b border-t border-gray-600">
 						<th className="px-2 py-2 text-left text-xs font-semibold text-gray-300 min-w-[100px]" />
 						<th className="px-2 py-2 text-center text-xs font-semibold text-gray-300 min-w-[70px] border-l border-gray-600/50">
 							Date

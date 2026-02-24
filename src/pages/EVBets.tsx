@@ -129,9 +129,105 @@ function EVBets() {
 					)}
 
 					{!evLoading && !evError && evData.length > 0 && (
-						<div className="space-y-6 text-table">
-							{/* Table Container */}
-							<div className="shadow-xl rounded-lg overflow-hidden">
+						<div className="space-y-3 text-table">
+
+							{/* Mobile Card View */}
+							<div className="md:hidden space-y-3">
+								{evData.map((bet) => {
+									const isPinnedEv = isEvPinned(bet.id.toString());
+									const isStale = isPinnedEv && isEvStale(bet.id.toString());
+									const cardBorder = isPinnedEv
+										? (isStale ? 'border-l-4 border-l-red-800' : 'border-l-4 border-l-indigo-500')
+										: '';
+
+									const gameTime = new Date(bet.game_time).toLocaleString([], {
+										month: 'short',
+										day: 'numeric',
+										hour: '2-digit',
+										minute: '2-digit'
+									});
+
+									const betSize = ((settings?.bankroll || 1000) * bet.kelly_fraction * (settings?.kellyFraction || 0.25)).toFixed(2);
+									const kelly = formatKelly(bet.kelly_fraction * (settings?.kellyFraction || 0.25));
+
+									return (
+										<div key={bet.id} className={`bg-gray-800/10 border border-gray-700 rounded-lg overflow-hidden ${cardBorder}`}>
+
+											{/* Card Header: pin | game info + true odds | EV% + edge */}
+											<div className="flex items-start gap-2 px-3 pt-3 pb-2">
+												<div className="flex-shrink-0 mt-0.5">
+													<PinButton
+														id={bet.id.toString()}
+														isPinned={isPinnedEv}
+														isStale={isStale}
+														onToggle={() => {
+															if (isPinnedEv) {
+																unpinEv(bet.id.toString());
+															} else {
+																pinEv(bet);
+															}
+														}}
+													/>
+												</div>
+												<div className="flex-1 min-w-0">
+													<div className="text-sm font-medium text-white truncate" title={`${bet.matchup.replace(/_/g, ' ')} - ${bet.league}`}>
+														{bet.matchup.replace(/_/g, ' ')}
+													</div>
+													<div className="text-xs text-gray-400 mt-0.5">{bet.league} • {gameTime}</div>
+													<div className="text-xs text-blue-400 mt-0.5">
+														True: {formatOdds(bet.true_odds.american_odds, settings?.oddsFormat || 'american')} ({(bet.true_odds.probability * 100).toFixed(1)}%)
+													</div>
+													{isStale && (
+														<div className="text-xs text-red-400 mt-1 flex items-center gap-1">
+															<span>⚠ May no longer be available</span>
+														</div>
+													)}
+												</div>
+												<div className="text-right flex-shrink-0">
+													<div className="text-base font-bold text-green-400">+{bet.expected_value.toFixed(2)}%</div>
+													<div className="text-xs text-gray-500">Edge: {bet.edge.toFixed(1)}%</div>
+												</div>
+											</div>
+
+											<div className="border-t border-gray-700" />
+
+											{/* Bet Row: sportsbook icon | team + odds + market | bet size | confidence */}
+											<div className="flex items-center gap-2 py-2.5 px-3">
+												{getSportsbookIcon(bet.bet.sportsbook) ? (
+													bet.bet.link ? (
+														<a href={bet.bet.link} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+															<img src={getSportsbookIcon(bet.bet.sportsbook)!} alt={bet.bet.sportsbook} className="w-7 h-7 rounded-lg object-contain hover:opacity-80 transition-opacity" title={bet.bet.sportsbook} />
+														</a>
+													) : (
+														<img src={getSportsbookIcon(bet.bet.sportsbook)!} alt={bet.bet.sportsbook} className="w-7 h-7 rounded-lg object-contain opacity-40 grayscale flex-shrink-0 cursor-not-allowed" title={bet.bet.sportsbook} />
+													)
+												) : (
+													<div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
+														<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+													</div>
+												)}
+												<div className="flex-1 min-w-0">
+													<div className="text-sm text-white font-medium truncate">
+														{bet.bet.team.replace(/_/g, ' ')}
+														<span className="ml-2 text-xs text-gray-300">{formatOdds(bet.bet.odds, settings?.oddsFormat || 'american')}</span>
+													</div>
+													<div className="text-xs text-gray-400">{bet.market}</div>
+												</div>
+												<div className="text-right flex-shrink-0 mr-1">
+													<div className="text-sm text-white font-medium">${betSize}</div>
+													<div className="text-xs text-gray-500">{kelly}</div>
+												</div>
+												<span className={`px-2 py-1 text-xs font-medium rounded border flex-shrink-0 ${getConfidenceBadgeClass(bet.confidence)}`}>
+													{bet.confidence}
+												</span>
+											</div>
+										</div>
+									);
+								})}
+							</div>
+
+							{/* Desktop Table View */}
+							<div className="hidden md:block shadow-xl rounded-lg overflow-hidden">
 								<div className="overflow-x-auto">
 									<table className="w-full table-fixed min-w-[900px]">
 										{/* Table Header */}
@@ -139,12 +235,12 @@ function EVBets() {
 											<tr>
 												<th className="w-[45px] min-w-[45px] max-w-[45px] px-1 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider sticky left-0 z-20 bg-black"></th>
 												<th className="w-[72px] min-w-[72px] max-w-[72px] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider sticky left-[45px] z-20 bg-black">EV%</th>
-												<th className="w-[24%] px-2 py-4 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider sticky left-[117px] z-20 bg-black">Bet</th>
-												<th className="w-[10%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Sportsbook</th>
-												<th className="w-[12%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">True Odds</th>
-												<th className="w-[12%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Confidence</th>
-												<th className="w-[10%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Bet Size</th>
 												<th className="w-[24%] px-2 py-4 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">Game</th>
+												<th className="w-[12%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">True Odds</th>
+												<th className="w-[24%] px-2 py-4 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider sticky left-[117px] z-20 bg-black">Bet</th>
+												<th className="w-[10%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Bet Size</th>
+												<th className="w-[12%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Confidence</th>
+												<th className="w-[10%] px-2 py-4 text-center text-xs font-semibold text-gray-200 uppercase tracking-wider">Sportsbook</th>
 											</tr>
 										</thead>
 
@@ -199,6 +295,32 @@ function EVBets() {
 															</div>
 														</td>
 
+														{/* Game */}
+														<td className="px-2 py-2 border-r-2 border-gray-300/50">
+															<div className="text-sm font-medium text-white truncate" title={`${bet.matchup.replace(/_/g, ' ')} - ${bet.league}`}>
+																{bet.matchup.replace(/_/g, ' ')}
+															</div>
+															<div className="text-xs text-gray-400">
+																{bet.league} • {gameTime}
+															</div>
+															{isStale && (
+																<div className="text-xs text-red-400 mt-1 flex items-center gap-1">
+																	<span>⚠</span>
+																	<span>May no longer be available</span>
+																</div>
+															)}
+														</td>
+
+														{/* True Odds */}
+														<td className="px-2 py-2 text-center border-r-2 border-gray-300/50">
+															<div className="text-sm text-blue-400">
+																{formatOdds(bet.true_odds.american_odds, settings?.oddsFormat || 'american')}
+															</div>
+															<div className="text-xs text-gray-500">
+																{(bet.true_odds.probability * 100).toFixed(1)}%
+															</div>
+														</td>
+
 														{/* Bet */}
 														<td className="px-2 py-2 border-r-2 border-gray-300/50 sticky left-[117px] z-10 bg-black">
 															<div className="text-sm text-white font-medium truncate" title={bet.bet.team.replace(/_/g, ' ')}>
@@ -210,6 +332,23 @@ function EVBets() {
 															<div className="text-xs text-gray-400">
 																{bet.market}
 															</div>
+														</td>
+
+														{/* Bet Size */}
+														<td className="px-2 py-2 text-center border-r-2 border-gray-300/50">
+															<div className="text-sm text-white font-medium">
+																${((settings?.bankroll || 1000) * bet.kelly_fraction * (settings?.kellyFraction || 0.25)).toFixed(2)}
+															</div>
+															<div className="text-xs text-gray-500">
+																{formatKelly(bet.kelly_fraction * (settings?.kellyFraction || 0.25))}
+															</div>
+														</td>
+
+														{/* Confidence */}
+														<td className="px-2 py-2 text-center border-r-2 border-gray-300/50">
+															<span className={`px-2 py-1 text-xs font-medium rounded border ${getConfidenceBadgeClass(bet.confidence)}`}>
+																{bet.confidence}
+															</span>
 														</td>
 
 														{/* Sportsbook */}
@@ -240,48 +379,6 @@ function EVBets() {
 																)
 															) : (
 																<span className="text-xs text-gray-300">{bet.bet.sportsbook}</span>
-															)}
-														</td>
-
-														<td className="px-2 py-2 text-center border-r-2 border-gray-300/50">
-															<div className="text-sm text-blue-400">
-																{formatOdds(bet.true_odds.american_odds, settings?.oddsFormat || 'american')}
-															</div>
-															<div className="text-xs text-gray-500">
-																{(bet.true_odds.probability * 100).toFixed(1)}%
-															</div>
-														</td>
-
-														{/* Confidence */}
-														<td className="px-2 py-2 text-center border-r-2 border-gray-300/50">
-															<span className={`px-2 py-1 text-xs font-medium rounded border ${getConfidenceBadgeClass(bet.confidence)}`}>
-																{bet.confidence}
-															</span>
-														</td>
-
-														{/* Bet Size */}
-														<td className="px-2 py-2 text-center border-r-2 border-gray-300/50">
-															<div className="text-sm text-white font-medium">
-																${((settings?.bankroll || 1000) * bet.kelly_fraction * (settings?.kellyFraction || 0.25)).toFixed(2)}
-															</div>
-															<div className="text-xs text-gray-500">
-																{formatKelly(bet.kelly_fraction * (settings?.kellyFraction || 0.25))}
-															</div>
-														</td>
-
-														{/* Game */}
-														<td className="px-2 py-2">
-															<div className="text-sm font-medium text-white truncate" title={`${bet.matchup.replace(/_/g, ' ')} - ${bet.league}`}>
-																{bet.matchup.replace(/_/g, ' ')}
-															</div>
-															<div className="text-xs text-gray-400">
-																{bet.league} • {gameTime}
-															</div>
-															{isStale && (
-																<div className="text-xs text-red-400 mt-1 flex items-center gap-1">
-																	<span>⚠</span>
-																	<span>May no longer be available</span>
-																</div>
 															)}
 														</td>
 													</tr>

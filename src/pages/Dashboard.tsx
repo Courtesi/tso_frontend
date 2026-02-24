@@ -139,9 +139,122 @@ function Dashboard() {
 					)}
 
 					{!loading && !error && bettingData.length > 0 && (
-						<div className="space-y-6 text-table">
-							{/* Table Container */}
-							<div className="shadow-xl rounded-lg overflow-hidden">
+						<div className="space-y-3 text-table">
+
+							{/* Mobile Card View */}
+							<div className="md:hidden space-y-3">
+								{bettingData.map((bet) => {
+									const isPinnedArb = isPinned(bet.id.toString());
+									const isStale = isPinnedArb && isArbStale(bet.id.toString());
+									const cardBorder = isPinnedArb
+										? (isStale ? 'border-l-4 border-l-red-800' : 'border-l-4 border-l-indigo-500')
+										: '';
+
+									const gameTime = new Date(bet.game_time).toLocaleString([], {
+										month: 'short',
+										day: 'numeric',
+										hour: '2-digit',
+										minute: '2-digit'
+									});
+
+									const { stake1, stake2 } = calculateArbStakes(
+										bet.bet1.odds,
+										bet.bet2.odds,
+										settings?.arbBetAmount || 100
+									);
+
+									return (
+										<div key={bet.id} className={`bg-gray-800/10 border border-gray-700 rounded-lg overflow-hidden ${cardBorder}`}>
+
+											{/* Card Header: pin | game info | profit % */}
+											<div className="flex items-start gap-2 px-3 pt-3 pb-2">
+												<div className="flex-shrink-0 mt-0.5">
+													<PinButton
+														id={bet.id.toString()}
+														isPinned={isPinnedArb}
+														isStale={isStale}
+														onToggle={() => {
+															if (isPinnedArb) {
+																unpinArb(bet.id.toString());
+															} else {
+																pinArb(bet);
+															}
+														}}
+													/>
+												</div>
+												<div className="flex-1 min-w-0">
+													<div className="text-sm font-medium text-white truncate" title={`${bet.matchup.replace(/_/g, ' ')} - ${bet.league}`}>
+														{bet.matchup.replace(/_/g, ' ')} - {bet.league}
+													</div>
+													<div className="flex items-center gap-2 mt-0.5">
+														<span className="text-xs font-semibold text-gray-300">{bet.market}</span>
+														<span className="text-xs text-gray-400">{gameTime}</span>
+													</div>
+													{isStale && (
+														<div className="text-xs text-red-400 mt-1 flex items-center gap-1">
+															<span>⚠ May no longer be available</span>
+														</div>
+													)}
+												</div>
+												<div className="text-base font-bold text-green-400 whitespace-nowrap flex-shrink-0">
+													{bet.profit_percentage.toFixed(2)}%
+												</div>
+											</div>
+
+											<div className="border-t border-gray-700" />
+
+											{/* Bet 1 Row */}
+											<div className="flex items-center gap-3 py-2.5 px-3">
+												{getSportsbookIcon(bet.bet1.sportsbook) ? (
+													bet.bet1.link ? (
+														<a href={bet.bet1.link} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+															<img src={getSportsbookIcon(bet.bet1.sportsbook)!} alt={bet.bet1.sportsbook} className="w-7 h-7 rounded-lg object-contain hover:opacity-80 transition-opacity" title={bet.bet1.sportsbook} />
+														</a>
+													) : (
+														<img src={getSportsbookIcon(bet.bet1.sportsbook)!} alt={bet.bet1.sportsbook} className="w-7 h-7 rounded-lg object-contain opacity-40 grayscale flex-shrink-0 cursor-not-allowed" title={bet.bet1.sportsbook} />
+													)
+												) : (
+													<div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
+														<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+													</div>
+												)}
+												<div className="flex-1 min-w-0 text-sm text-white font-medium truncate">
+													{bet.bet1.team.replace(/_/g, ' ')}
+													<span className="ml-2 text-xs text-gray-300">{formatOdds(bet.bet1.odds, settings?.oddsFormat || 'american')}</span>
+												</div>
+												<div className="text-sm text-gray-200 whitespace-nowrap flex-shrink-0">${stake1.toFixed(2)}</div>
+											</div>
+
+											<div className="border-t border-gray-700/60" />
+
+											{/* Bet 2 Row */}
+											<div className="flex items-center gap-3 py-2.5 px-3">
+												{getSportsbookIcon(bet.bet2.sportsbook) ? (
+													bet.bet2.link ? (
+														<a href={bet.bet2.link} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+															<img src={getSportsbookIcon(bet.bet2.sportsbook)!} alt={bet.bet2.sportsbook} className="w-7 h-7 rounded-lg object-contain hover:opacity-80 transition-opacity" title={bet.bet2.sportsbook} />
+														</a>
+													) : (
+														<img src={getSportsbookIcon(bet.bet2.sportsbook)!} alt={bet.bet2.sportsbook} className="w-7 h-7 rounded-lg object-contain opacity-40 grayscale flex-shrink-0 cursor-not-allowed" title={bet.bet2.sportsbook} />
+													)
+												) : (
+													<div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
+														<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+													</div>
+												)}
+												<div className="flex-1 min-w-0 text-sm text-white font-medium truncate">
+													{bet.bet2.team.replace(/_/g, ' ')}
+													<span className="ml-2 text-xs text-gray-300">{formatOdds(bet.bet2.odds, settings?.oddsFormat || 'american')}</span>
+												</div>
+												<div className="text-sm text-gray-200 whitespace-nowrap flex-shrink-0">${stake2.toFixed(2)}</div>
+											</div>
+										</div>
+									);
+								})}
+							</div>
+
+							{/* Desktop Table View */}
+							<div className="hidden md:block shadow-xl rounded-lg overflow-hidden">
 								<div className="overflow-x-auto">
 									<table className="w-full table-fixed min-w-[900px]">
 										{/* Table Header */}
