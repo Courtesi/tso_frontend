@@ -132,14 +132,14 @@ function OddsRow({
 	return (
 		<tr className="border-b border-gray-600/50 last:border-b-0">
 			{/* First column - team name */}
-			<td className="px-2 py-2 text-sm text-gray-200 min-w-[100px]">
+			<td className="px-2 py-2 text-sm text-gray-200 w-[140px] overflow-hidden">
 				<div className="text-xs text-gray-300 truncate font-medium" title={teamName}>{teamName}</div>
 			</td>
 
 			{/* Second column - date/time spanning all rows (only rendered on first row) */}
 			{isFirstRow && (
 				<td
-					className="px-2 py-2 text-center min-w-[70px] border-l border-gray-600/50"
+					className="px-2 py-2 text-center w-[80px] overflow-hidden border-l border-gray-600/50"
 					rowSpan={totalRows}
 				>
 					<div className="flex flex-col items-center justify-center h-full">
@@ -150,7 +150,7 @@ function OddsRow({
 			)}
 
 			{/* Average column */}
-			<td className="px-2 py-2 text-center min-w-[60px] border-l border-gray-600/50">
+			<td className="px-2 py-2 text-center w-36 border-l border-gray-600/50">
 				{average !== null ? (
 					<span className="font-bold text-white text-sm">
 						{formatOdds(average, oddsFormat)}
@@ -171,7 +171,7 @@ function OddsRow({
 				return (
 					<td
 						key={book}
-						className="relative px-1 py-2 text-center min-w-[50px]"
+						className="relative px-1 py-2 text-center w-36"
 					>
 						{flash && (
 							<div
@@ -251,14 +251,14 @@ function OddsTable({ game, outcomes }: { game: GameTerminalData; outcomes: Outco
 
 	return (
 		<div className="overflow-x-auto">
-			<table className="min-w-full">
+			<table className="table-fixed">
 				<thead>
 					<tr className="border-b border-t border-gray-600">
-						<th className="px-2 py-2 text-left text-xs font-semibold text-gray-300 min-w-[100px]" />
-						<th className="px-2 py-2 text-center text-xs font-semibold text-gray-300 min-w-[70px] border-l border-gray-600/50">
+						<th className="px-2 py-2 text-left text-xs font-semibold text-gray-300 w-[140px]" />
+						<th className="px-2 py-2 text-center text-xs font-semibold text-gray-300 w-[80px] border-l border-gray-600/50">
 							Date
 						</th>
-						<th className="px-2 py-2 text-center text-xs font-semibold text-gray-300 min-w-[60px] border-l border-gray-600/50">
+						<th className="px-2 py-2 text-center text-xs font-semibold text-gray-300 w-36 border-l border-gray-600/50">
 							Avg
 						</th>
 						{allSportsbooks.map(book => {
@@ -266,7 +266,7 @@ function OddsTable({ game, outcomes }: { game: GameTerminalData; outcomes: Outco
 							return (
 								<th
 									key={book}
-									className="px-1 py-2 text-center min-w-[50px]"
+									className="px-1 py-2 text-center w-36"
 									title={book}
 								>
 									{iconPath ? (
