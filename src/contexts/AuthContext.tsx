@@ -161,12 +161,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 			// Call backend to cancel subscriptions and delete account
 			// Backend handles: Stripe subscription cancellation + Firebase Auth deletion
 			await api.deleteAccount();
-		} catch (error: any) {
-			// Provide more helpful error messages
-			if (error.code === 'auth/requires-recent-login') {
-				throw new Error('For security reasons, please sign out and sign in again before deleting your account.');
-			} else if (error.code === 'auth/wrong-password') {
-				throw new Error('Incorrect password. Please try again.');
+		} catch (error: unknown) {
+			if (error instanceof Error && 'code' in error) {
+				const code = (error as Error & { code: string }).code;
+				if (code === 'auth/requires-recent-login') {
+					throw new Error('For security reasons, please sign out and sign in again before deleting your account.');
+				} else if (code === 'auth/wrong-password') {
+					throw new Error('Incorrect password. Please try again.');
+				}
 			}
 			throw error;
 		}
@@ -190,10 +192,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 			return;
 		}
 
-		// Get tier from custom claims
 		const fetchTier = async () => {
 			try {
-				const role = await getCustomClaimRole();
+				await currentUser.getIdToken(true);
+				const decodedToken = await currentUser.getIdTokenResult();
+				const role = (decodedToken?.claims.stripeRole as string) || null;
 				setUserTier(role || 'free');
 			} catch (error) {
 				console.error('Error fetching user tier:', error);

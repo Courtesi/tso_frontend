@@ -99,9 +99,9 @@ function BugReportModal({ isOpen, onClose }: BugReportModalProps) {
 				onClose();
 				setSuccess(false);
 			}, 2000);
-		} catch (err: any) {
+		} catch (err: unknown) {
 			console.error('Bug report error:', err);
-			setError(err.message || 'Failed to submit bug report. Please try again.');
+			setError(err instanceof Error ? err.message : 'Failed to submit bug report. Please try again.');
 		} finally {
 			setLoading(false);
 		}

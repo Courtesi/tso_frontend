@@ -44,8 +44,8 @@ function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps) {
 			await deleteAccount(isEmailPasswordUser ? password : undefined);
 			// Account deleted successfully - user will be automatically signed out
 			// No need to close modal as user will be redirected
-		} catch (err: any) {
-			setError(err.message || 'Failed to delete account');
+		} catch (err: unknown) {
+			setError(err instanceof Error ? err.message : 'Failed to delete account');
 			setLoading(false);
 		}
 	};

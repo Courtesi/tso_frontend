@@ -35,8 +35,8 @@ function AuthModal({ isOpen, onClose }: AuthModalProps) {
 			onClose();
 			resetForm();
 			navigate('/dashboard');
-		} catch (err: any) {
-			setError(err.message || 'Failed to sign in');
+		} catch (err: unknown) {
+			setError(err instanceof Error ? err.message : 'Failed to sign in');
 		} finally {
 			setLoading(false);
 		}
@@ -93,8 +93,8 @@ function AuthModal({ isOpen, onClose }: AuthModalProps) {
 				setSignUpSuccess(false);
 				navigate("/dashboard");
 			}, 2000);
-		} catch (err: any) {
-			setError(err.message || 'Failed to sign up');
+		} catch (err: unknown) {
+			setError(err instanceof Error ? err.message : 'Failed to sign up');
 		} finally {
 			setLoading(false);
 		}
@@ -113,8 +113,8 @@ function AuthModal({ isOpen, onClose }: AuthModalProps) {
 				setIsForgotPassword(false);
 				setResetEmailSent(false);
 			}, 3000);
-		} catch (err: any) {
-			setError(err.message || 'Failed to send reset email');
+		} catch (err: unknown) {
+			setError(err instanceof Error ? err.message : 'Failed to send reset email');
 		} finally {
 			setLoading(false);
 		}
@@ -146,14 +146,15 @@ function AuthModal({ isOpen, onClose }: AuthModalProps) {
 			onClose();
 			resetForm();
 			navigate('/dashboard');
-		} catch (err: any) {
+		} catch (err: unknown) {
 			console.error('Google sign-in error:', err);
-			if (err.code === 'auth/popup-closed-by-user') {
+			const code = err instanceof Error && 'code' in err ? (err as Error & { code: string }).code : null;
+			if (code === 'auth/popup-closed-by-user') {
 				setError('Sign-in popup was closed');
-			} else if (err.code === 'auth/popup-blocked') {
+			} else if (code === 'auth/popup-blocked') {
 				setError('Pop-up was blocked by your browser. Please enable pop-ups and try again.');
 			} else {
-				setError(err.message || 'Failed to sign in with Google');
+				setError(err instanceof Error ? err.message : 'Failed to sign in with Google');
 			}
 		} finally {
 			setLoading(false);
