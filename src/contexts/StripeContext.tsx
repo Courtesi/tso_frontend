@@ -1,62 +1,12 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
-import { query, collection, where, getDocs, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from './AuthContext';
-
-interface PriceInfo {
-	currency: string;
-	unit_amount: number;
-	interval?: string;
-	interval_count?: number;
-	type: 'one_time' | 'recurring';
-	[key: string]: string | number | boolean | undefined;
-}
-
-interface ProductFeature {
-	name: string;
-}
-
-interface Product {
-	id: string;
-	name: string;
-	description?: string;
-	active: boolean;
-	priceId: string;
-	priceInfo: PriceInfo;
-	features?: ProductFeature[];
-	[key: string]: string | number | boolean | undefined | PriceInfo | ProductFeature[];
-}
-
-interface FirebaseTimestamp {
-	seconds: number;
-	nanoseconds: number;
-}
-
-interface SubscriptionPrice {
-	id: string;
-	unit_amount: number;
-	currency: string;
-	interval?: string;
-}
-
-interface SubscriptionProduct {
-	name: string;
-	description: string;
-}
-
-interface Subscription {
-	id: string;
-	status: string;
-	current_period_end: FirebaseTimestamp;
-	current_period_start: FirebaseTimestamp;
-	cancel_at_period_end: boolean;
-	price?: SubscriptionPrice;
-	product?: SubscriptionProduct;
-	[key: string]: string | boolean | undefined | FirebaseTimestamp | SubscriptionPrice | SubscriptionProduct;
-}
+import { api } from '../services/api';
+import type { StripeProduct, Subscription } from '../types/stripe';
 
 interface StripeContextType {
-	products: Product[];
+	products: StripeProduct[];
 	loading: boolean;
 	error: string | null;
 	fetchProducts: () => Promise<void>;
@@ -80,7 +30,7 @@ interface StripeProviderProps {
 
 export function StripeProvider({ children }: StripeProviderProps) {
 	const { currentUser } = useAuth();
-	const [products, setProducts] = useState<Product[]>([]);
+	const [products, setProducts] = useState<StripeProduct[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [hasFetched, setHasFetched] = useState(false);
@@ -97,47 +47,7 @@ export function StripeProvider({ children }: StripeProviderProps) {
 		setError(null);
 
 		try {
-			// Create query for active products
-			const q = query(
-				collection(db, 'products'),
-				where('active', '==', true)
-			);
-
-			const querySnapshot = await getDocs(q);
-
-			// For each product, get the product price info
-			const productsPromises = querySnapshot.docs.map(async (productDoc) => {
-				const productData = productDoc.data();
-
-				// Fetch prices subcollection per product
-				const pricesCollection = collection(productDoc.ref, 'prices');
-				const priceQuerySnapshot = await getDocs(pricesCollection);
-
-				// Get the first active price (you can add more logic here if needed)
-				const activePrices = priceQuerySnapshot.docs.filter(
-					(doc) => doc.data().active === true
-				);
-
-				if (activePrices.length === 0) {
-					// Skip products with no active prices
-					return null;
-				}
-
-				const priceDoc = activePrices[0];
-
-				return {
-					id: productDoc.id,
-					...productData,
-					priceId: priceDoc.id,
-					priceInfo: priceDoc.data() as PriceInfo,
-				} as Product;
-			});
-
-			// Filter out null products (those without active prices)
-			const fetchedProducts = (await Promise.all(productsPromises)).filter(
-				(product): product is Product => product !== null
-			);
-
+			const { products: fetchedProducts } = await api.getProducts();
 			setProducts(fetchedProducts);
 			setHasFetched(true);
 		} catch (err: unknown) {

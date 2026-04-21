@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { useSidebar } from '../contexts/SidebarContext';
-import { api, type SportsbookInfo, type TierInfo } from '../services/api';
+import { api } from '../services/api';
+import type { SportsbookInfo } from '../types/stripe';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import { ExpandableOddsScreen } from '../components/OddsScreen';
@@ -11,7 +12,7 @@ import { ChartsSkeleton } from '../components/Skeletons';
 
 // Cache configs at module level to avoid refetching
 let sportsbooksCache: Record<string, SportsbookInfo> | null = null;
-let tierConfigCache: { tiers: Record<string, TierInfo>; allLeagues: string[] } | null = null;
+let leaguesConfigCache: { allLeagues: string[]; freeAllowedLeagues: string[] } | null = null;
 
 function Charts() {
 	const { currentUser, userTier, loading: authLoading } = useAuth();
@@ -36,8 +37,8 @@ function Charts() {
 	const sportsbookDropdownRef = useRef<HTMLDivElement>(null);
 	const leagueDropdownRef = useRef<HTMLDivElement>(null);
 	const [sportsbooks, setSportsbooks] = useState<Record<string, SportsbookInfo>>(sportsbooksCache || {});
-	const [allLeagues, setAllLeagues] = useState<string[]>(tierConfigCache?.allLeagues || []);
-	const [tierConfig, setTierConfig] = useState<Record<string, TierInfo>>(tierConfigCache?.tiers || {});
+	const [allLeagues, setAllLeagues] = useState<string[]>(leaguesConfigCache?.allLeagues || []);
+	const [freeAllowedLeagues, setFreeAllowedLeagues] = useState<string[]>(leaguesConfigCache?.freeAllowedLeagues || []);
 
 	// Fetch sportsbook config on mount
 	useEffect(() => {
@@ -50,16 +51,17 @@ function Charts() {
 			.catch(err => console.error('Failed to fetch sportsbooks config:', err));
 	}, []);
 
-	// Fetch tier config on mount
+	// Fetch leagues config on mount
 	useEffect(() => {
-		if (tierConfigCache) return;
-		api.getTierFeatures()
+		if (leaguesConfigCache) return;
+		api.getLeaguesConfig()
 			.then(response => {
-				tierConfigCache = { tiers: response.tiers, allLeagues: response.all_leagues };
-				setTierConfig(response.tiers);
+				const freeLeagues = response.tier_allowed_leagues.free ?? [];
+				leaguesConfigCache = { allLeagues: response.all_leagues, freeAllowedLeagues: freeLeagues };
 				setAllLeagues(response.all_leagues);
+				setFreeAllowedLeagues(freeLeagues);
 			})
-			.catch(err => console.error('Failed to fetch tier config:', err));
+			.catch(err => console.error('Failed to fetch leagues config:', err));
 	}, []);
 
 	// Close dropdowns when clicking outside
@@ -110,10 +112,10 @@ function Charts() {
 			<div className={`px-4 py-20 pt-24 transition-all duration-300 ${isCollapsed ? 'md:ml-16' : 'md:ml-64'}`}>
 				<div className="max-w-7xl mx-auto">
 					{/* Free tier info banner */}
-					{userTier === 'free' && tierConfig.free && (
+					{userTier === 'free' && freeAllowedLeagues.length > 0 && (
 						<div className="bg-yellow-900 bg-opacity-50 border border-yellow-500 rounded-lg p-4 mb-6">
 							<p className="text-yellow-200 text-sm">
-								Free tier: {tierConfig.free.allowed_leagues?.join('/') || 'All leagues'} only.{' '}
+								Free tier: {freeAllowedLeagues.join('/') || 'All leagues'} only.{' '}
 								<a href="/pricing" className="underline font-semibold">Upgrade to Premium</a>{' '}
 								for all leagues and real-time updates.
 							</p>
@@ -166,7 +168,7 @@ function Charts() {
 									<div className="absolute top-full left-0 mt-1 bg-gray-900 rounded-lg shadow-lg z-50 min-w-[120px]">
 										<div className="py-1 max-h-60 overflow-y-auto">
 											{allLeagues.map(league => {
-												const isLocked = userTier === 'free' && tierConfig.free?.allowed_leagues && !tierConfig.free.allowed_leagues.includes(league);
+												const isLocked = userTier === 'free' && freeAllowedLeagues.length > 0 && !freeAllowedLeagues.includes(league);
 												const isSelected = leagueFilter === league;
 												return (
 													<button

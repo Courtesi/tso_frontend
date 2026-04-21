@@ -1,38 +1,12 @@
 import { auth } from '../config/firebase';
 import type { TerminalPayload } from '../types/terminal';
+import type {
+	CreatePortalSessionRequest,
+	SportsbooksResponse,
+	StripeProduct,
+} from '../types/stripe';
 
 const API_URL = import.meta.env.VITE_API_URL;
-
-export interface CreatePortalSessionRequest {
-	returnUrl: string;
-}
-
-// Sportsbook configuration interfaces
-export interface SportsbookInfo {
-	icon: string;
-	display_name: string;
-}
-
-export interface SportsbooksResponse {
-	sportsbooks: Record<string, SportsbookInfo>;
-}
-
-// Tier features configuration interfaces
-export interface TierInfo {
-	name: string;
-	description?: string;
-	price?: string;
-	features_intro?: string;
-	features: string[];
-	// Tier limits
-	allowed_leagues: string[] | null; // null means all leagues
-	max_arbs: number | null; // null means unlimited
-}
-
-export interface TierFeaturesResponse {
-	tiers: Record<string, TierInfo>;
-	all_leagues: string[];
-}
 
 async function handleResponse<T>(response: Response): Promise<T> {
 	if (!response.ok) {
@@ -121,8 +95,12 @@ class ApiService {
 		return this.publicRequest('/api/config/sportsbooks');
 	}
 
-	async getTierFeatures(): Promise<TierFeaturesResponse> {
-		return this.publicRequest('/api/config/tiers');
+	async getProducts(): Promise<{ products: StripeProduct[] }> {
+		return this.publicRequest('/api/products');
+	}
+
+	async getLeaguesConfig(): Promise<{ all_leagues: string[]; tier_allowed_leagues: Record<string, string[] | null> }> {
+		return this.publicRequest('/api/config/leagues');
 	}
 
 	// ==================== PROTECTED ENDPOINTS ====================
