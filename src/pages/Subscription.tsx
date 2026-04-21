@@ -8,10 +8,8 @@ import AuthModal from '../components/AuthModal';
 import Footer from '../components/Footer';
 import { collection, addDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { api, type TierInfo } from '../services/api';
+import { api } from '../services/api';
 
-// Cache tier features at module level to avoid refetching
-let tierFeaturesCache: Record<string, TierInfo> | null = null;
 
 function Subscription() {
 	const { currentUser, userTier } = useAuth();
@@ -20,25 +18,10 @@ function Subscription() {
 	const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 	const [checkoutLoading, setCheckoutLoading] = useState(false);
 	const [portalLoading, setPortalLoading] = useState(false);
-	const [tierFeatures, setTierFeatures] = useState<Record<string, TierInfo>>(tierFeaturesCache || {});
 
 	useEffect(() => {
 		fetchProducts();
 	}, [fetchProducts]);
-
-	// Fetch tier features config on mount
-	useEffect(() => {
-		if (tierFeaturesCache) return;
-
-		api.getTierFeatures()
-			.then(response => {
-				tierFeaturesCache = response.tiers;
-				setTierFeatures(response.tiers);
-			})
-			.catch(err => {
-				console.error('Failed to fetch tier features:', err);
-			});
-	}, []);
 
 	const particlesOptions = useMemo(() => ({
 		background: {
@@ -244,135 +227,101 @@ function Subscription() {
 				{/* Products Grid */}
 				{!loading && !error && (
 					<div className="max-w-3xl mx-auto grid md:grid-cols-2 gap-8">
-						{/* Free Tier */}
-						<div className="bg-slate-900 backdrop-blur-md border border-gray-500/20 shadow-xl rounded-xl p-8">
-							<div className="text-left mb-8">
-								<h3 className="capitalize text-3xl font-bold text-white mb-2">
-									{tierFeatures.free?.name || 'Free'}
-								</h3>
-								<p className="text-gray-200 text-sm">
-									{tierFeatures.free?.description || "Use Trueshot's basic features"}
-								</p>
-								<div className="text-4xl font-bold text-gray-100 mt-4">
-									{tierFeatures.free?.price || '$0'}
-								</div>
-							</div>
-							{currentUser && userTier === 'free' ? (
-								<button
-									disabled
-									className="w-full backdrop-blur-lg bg-gray-700/50 text-gray-400 font-semibold py-3 px-8 rounded-lg cursor-not-allowed"
-								>
-									Current Plan
-								</button>
-							) : currentUser && userTier === 'premium' ? (
-								<div className="relative group">
-									<button
-										disabled
-										className="w-full backdrop-blur-lg bg-gray-700/50 text-gray-400 font-semibold py-3 px-8 rounded-lg cursor-not-allowed"
+						{[...products]
+							.sort((a, b) => (a.priceInfo.unit_amount || 0) - (b.priceInfo.unit_amount || 0))
+							.map((product) => {
+								const price = product.priceInfo;
+								const isFree = (price.unit_amount || 0) === 0;
+								const formattedPrice = isFree
+									? '$0'
+									: new Intl.NumberFormat('en-US', {
+										style: 'currency',
+										currency: price.currency || 'USD',
+									}).format((price.unit_amount || 0) / 100);
+								const interval = price.interval || 'month';
+
+								return (
+									<div
+										key={product.id}
+										className={isFree
+											? 'bg-slate-900 backdrop-blur-md border border-gray-500/20 shadow-xl rounded-xl p-8'
+											: 'bg-gradient-to-b from-fuchsia-700/50 to-violet-900/50 backdrop-blur-md border border-indigo-500 shadow-xl rounded-xl p-8 relative'
+										}
 									>
-										Choose
-									</button>
-									<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap border border-gray-700 shadow-lg">
-										Manage your subscription through "Manage Subscription"
-									</div>
-								</div>
-							) : (
-								<button
-									onClick={() => setIsAuthModalOpen(true)}
-									className="w-full backdrop-blur-lg bg-gray-700/50 text-white font-semibold py-3 px-8 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer"
-								>
-									Choose
-								</button>
-							)}
-
-							<ul className="space-y-3 mt-8 justify-start text-sm">
-								{(tierFeatures.free?.features || [
-									"Odds charts (Available leagues)",
-									"Access to 5 arbitrage bets at a time",
-									"Finds bets every 60 seconds",
-								]).map((feature, index) => (
-									<li key={index} className="text-gray-200">
-										<img
-											className="inline-block w-8 h-8 mr-2"
-											src={"/checkmark.png"}
-										/>
-										{feature}
-									</li>
-								))}
-							</ul>
-
-						</div>
-
-						{/* Premium Tiers from Stripe */}
-						{products.map((product) => {
-							const price = product.priceInfo;
-							const formattedPrice = new Intl.NumberFormat('en-US', {
-								style: 'currency',
-								currency: price.currency || 'USD',
-							}).format((price.unit_amount || 0) / 100);
-
-							const interval = price.interval || 'month';
-							const isPremium = userTier === 'premium';
-
-							return (
-								<div
-									key={product.id}
-									className="bg-gradient-to-b from-fuchsia-700/50 to-violet-900/50 backdrop-blur-md border border-indigo-500 shadow-xl rounded-xl p-8 relative"
-								>
-
-									<div className="text-left mb-8">
-										<h3 className="capitalize text-3xl font-bold text-white mb-2">
-											{product.name}
-										</h3>
-										<p className="text-gray-100 text-sm">
-											{product.description}
-										</p>
-										<div className="text-4xl font-bold text-white mt-4">
-											{formattedPrice}
-											<span className="text-lg text-gray-200">/{interval}</span>
+										<div className="text-left mb-8">
+											<h3 className="capitalize text-3xl font-bold text-white mb-2">
+												{product.name}
+											</h3>
+											<p className={`text-sm ${isFree ? 'text-gray-200' : 'text-gray-100'}`}>
+												{product.description}
+											</p>
+											<div className={`text-4xl font-bold mt-4 ${isFree ? 'text-gray-100' : 'text-white'}`}>
+												{formattedPrice}
+												{!isFree && <span className="text-lg text-gray-200">/{interval}</span>}
+											</div>
 										</div>
+
+										{isFree ? (
+											currentUser && userTier === 'free' ? (
+												<button
+													disabled
+													className="w-full backdrop-blur-lg bg-gray-700/50 text-gray-400 font-semibold py-3 px-8 rounded-lg cursor-not-allowed"
+												>
+													Current Plan
+												</button>
+											) : currentUser && userTier === 'premium' ? (
+												<div className="relative group">
+													<button
+														disabled
+														className="w-full backdrop-blur-lg bg-gray-700/50 text-gray-400 font-semibold py-3 px-8 rounded-lg cursor-not-allowed"
+													>
+														Choose
+													</button>
+													<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap border border-gray-700 shadow-lg">
+														Manage your subscription through "Manage Subscription"
+													</div>
+												</div>
+											) : (
+												<button
+													onClick={() => setIsAuthModalOpen(true)}
+													className="w-full backdrop-blur-lg bg-gray-700/50 text-white font-semibold py-3 px-8 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer"
+												>
+													Choose
+												</button>
+											)
+										) : (
+											userTier === 'premium' ? (
+												<button
+													disabled
+													className="w-full backdrop-blur-lg bg-gray-700/50 text-gray-300 font-semibold py-3 px-8 rounded-lg cursor-not-allowed"
+												>
+													✓ Current Plan
+												</button>
+											) : (
+												<button
+													onClick={() => handleCheckout(product.priceId)}
+													disabled={checkoutLoading}
+													className="w-full backdrop-blur-lg bg-gray-100 hover:bg-gray-300 text-black font-bold py-3 px-8 rounded-lg transition-colors shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+												>
+													{checkoutLoading ? 'Loading...' : `Upgrade to ${product.name}`}
+												</button>
+											)
+										)}
+
+										<ul className="space-y-3 mt-8 justify-start text-sm">
+											{product.features?.map((f: { name: string }, index: number) => (
+												<li key={index} className={`font-medium ${isFree ? 'text-gray-200' : 'text-white'}`}>
+													<img
+														className="inline-block w-8 h-8 mr-2"
+														src={"/checkmark.png"}
+													/>
+													{f.name}
+												</li>
+											))}
+										</ul>
 									</div>
-									{isPremium ? (
-										<button
-											disabled
-											className="w-full backdrop-blur-lg bg-gray-700/50 text-gray-300 font-semibold py-3 px-8 rounded-lg cursor-not-allowed"
-										>
-											✓ Current Plan
-										</button>
-									) : (
-										<button
-											onClick={() => handleCheckout(product.priceId)}
-											disabled={checkoutLoading}
-											className="w-full backdrop-blur-lg bg-gray-100 hover:bg-gray-300 text-black font-bold py-3 px-8 rounded-lg transition-colors shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-										>
-											{checkoutLoading ? 'Loading...' : `Upgrade to ${product.name}`}
-										</button>
-									)}
-
-									<ul className="space-y-3 mt-8 justify-start text-sm">
-										<li className="text-white font-medium">
-											{tierFeatures.premium?.features_intro || 'Everything in Free, and:'}
-										</li>
-										{(product.features && product.features.length > 0
-											? product.features.map((f: { name: string }) => f.name)
-											: tierFeatures.premium?.features || [
-												"Access to unlimited arbitrage bets",
-												"Real time updates on bets",
-											]
-										).map((feature: string, index: number) => (
-											<li key={index} className="text-white font-medium">
-												<img
-													className="inline-block w-8 h-8 mr-2"
-													src={"/checkmark.png"}
-												/>
-												{feature}
-											</li>
-										))}
-									</ul>
-
-								</div>
-							);
-						})}
+								);
+							})}
 					</div>
 				)}
 
