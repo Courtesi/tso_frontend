@@ -18,7 +18,7 @@ export interface StripeProduct {
 	active: boolean;
 	priceId: string;
 	priceInfo: ProductPriceInfo;
-	features?: ProductFeature[];
+	features?: string[];
 }
 
 // Sportsbook types

@@ -309,13 +309,13 @@ function Subscription() {
 										)}
 
 										<ul className="space-y-3 mt-8 justify-start text-sm">
-											{product.features?.map((f: { name: string }, index: number) => (
+											{product.features?.map((feature, index) => (
 												<li key={index} className={`font-medium ${isFree ? 'text-gray-200' : 'text-white'}`}>
 													<img
 														className="inline-block w-8 h-8 mr-2"
 														src={"/checkmark.png"}
 													/>
-													{f.name}
+													{feature}
 												</li>
 											))}
 										</ul>
