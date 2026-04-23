@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router-dom';
 
 function Footer() {
 	const navigate = useNavigate();
-	// const currentYear = new Date().getFullYear();
 
 	return (
 		<footer className="bg-indigo-950/50 backdrop-blur-sm border-t border-white/10 py-8 mt-20">

@@ -158,7 +158,7 @@ function Subscription() {
 	};
 
 	return (
-		<div className="min-h-screen text-white relative bg-gradient-to-br from-slate-950 via-gray-950 to-slate-900">
+		<div className="min-h-screen flex flex-col text-white relative bg-gradient-to-br from-slate-950 via-gray-950 to-slate-900">
 			{/* Starry Background */}
 			{init && (
 				<Particles
@@ -172,7 +172,7 @@ function Subscription() {
 			{/* Navigation Bar */}
 			<Navbar onAuthModalOpen={() => setIsAuthModalOpen(true)} />
 
-			<div className="container mx-auto px-4 py-20 pt-32">
+			<div className="flex-1 container mx-auto px-4 py-20 pt-32">
 				{/* Header */}
 				<div className="text-center mb-20">
 					<h1 className="heading-hero uppercase text-4xl md:text-5xl text-gray-100 mb-4">
