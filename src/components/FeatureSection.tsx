@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useInView } from '../hooks/useInView';
 
 interface FeatureSectionProps {
@@ -7,6 +8,7 @@ interface FeatureSectionProps {
 	imageSrc: string;
 	imageAlt: string;
 	imagePosition: 'left' | 'right';
+	learnMorePath?: string;
 }
 
 export default function FeatureSection({
@@ -16,7 +18,9 @@ export default function FeatureSection({
 	imageSrc,
 	imageAlt,
 	imagePosition,
+	learnMorePath,
 }: FeatureSectionProps) {
+	const navigate = useNavigate();
 	const { ref, isInView } = useInView({ threshold: 0.15 });
 
 	const imageOnLeft = imagePosition === 'left';
@@ -76,6 +80,17 @@ export default function FeatureSection({
 							</li>
 						))}
 					</ul>
+					{learnMorePath && (
+						<button
+							onClick={() => navigate(learnMorePath)}
+							className="mt-8 text-indigo-400 hover:text-indigo-300 font-semibold text-lg transition-colors cursor-pointer flex items-center gap-1"
+						>
+							Learn more
+							<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+								<path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+							</svg>
+						</button>
+					)}
 				</div>
 
 				{/* Image */}

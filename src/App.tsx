@@ -14,6 +14,7 @@ import Settings from './pages/Settings';
 import Subscription from './pages/Subscription';
 import ArbitrageBetting from './pages/ArbitrageBetting';
 import EVBetting from './pages/EVBetting';
+import Lines from './pages/Lines';
 import FAQ from './pages/FAQ';
 import NotFound from './pages/NotFound';
 import VerificationBanner from './components/VerificationBanner';
@@ -36,6 +37,7 @@ function App() {
 										<Route path="/ev-bets" element={<EVBets />} />
 										<Route path="/settings" element={<Settings />} />
 										<Route path="/pricing" element={<Subscription />} />
+										<Route path="/lines" element={<Lines />} />
 										<Route path="/arbitrage-betting" element={<ArbitrageBetting />} />
 										<Route path="/ev-betting" element={<EVBetting />} />
 										<Route path="/faq" element={<FAQ />} />

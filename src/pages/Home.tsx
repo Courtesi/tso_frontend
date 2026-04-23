@@ -19,6 +19,7 @@ function Home() {
 	const navigate = useNavigate();
 	const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 	const [isBugReportOpen, setIsBugReportOpen] = useState(false);
+	const [isLearnOpen, setIsLearnOpen] = useState(false);
 
 	// const particlesLoaded = useCallback(async (container?: Container) => {
     //     console.log('🌟 Particles loaded/reloaded at:', new Date().toISOString(), container);
@@ -121,6 +122,34 @@ function Home() {
 				>
 					Pricing
 				</button>
+				<div className="relative">
+					<button
+						onClick={() => setIsLearnOpen(o => !o)}
+						onBlur={() => setTimeout(() => setIsLearnOpen(false), 150)}
+						className="text-md font-bold text-gray-100 hover:text-white transition-colors cursor-pointer flex items-center gap-1"
+					>
+						Learn
+						<svg className={`w-4 h-4 transition-transform duration-200 ${isLearnOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+							<path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+						</svg>
+					</button>
+					{isLearnOpen && (
+						<div className="absolute top-full left-0 mt-3 w-52 bg-gray-900 border border-white/10 rounded-xl py-2 shadow-xl z-50">
+							<button onClick={() => { navigate('/lines'); setIsLearnOpen(false); }} className="w-full text-left px-4 py-2.5 text-gray-200 hover:text-white hover:bg-white/5 transition-colors cursor-pointer text-sm font-medium">
+								Betting Lines
+							</button>
+							<button onClick={() => { navigate('/arbitrage-betting'); setIsLearnOpen(false); }} className="w-full text-left px-4 py-2.5 text-gray-200 hover:text-white hover:bg-white/5 transition-colors cursor-pointer text-sm font-medium">
+								Arbitrage Betting
+							</button>
+							<button onClick={() => { navigate('/ev-betting'); setIsLearnOpen(false); }} className="w-full text-left px-4 py-2.5 text-gray-200 hover:text-white hover:bg-white/5 transition-colors cursor-pointer text-sm font-medium">
+								+EV Betting
+							</button>
+							<button onClick={() => { navigate('/faq'); setIsLearnOpen(false); }} className="w-full text-left px-4 py-2.5 text-gray-200 hover:text-white hover:bg-white/5 transition-colors cursor-pointer text-sm font-medium">
+								FAQ
+							</button>
+						</div>
+					)}
+				</div>
 				<button
 					onClick={() => setIsBugReportOpen(true)}
 					className="text-md font-bold text-gray-100 hover:text-white transition-colors cursor-pointer"
@@ -214,6 +243,7 @@ function Home() {
 						imageSrc="/dashboard_screenshots/charts-plus-laptop.png"
 						imageAlt="Real-time odds charts"
 						imagePosition="right"
+						learnMorePath="/lines"
 					/>
 
 					<FeatureSection
@@ -227,6 +257,7 @@ function Home() {
 						imageSrc="/dashboard_screenshots/arbs-with-visuals.png"
 						imageAlt="Arbitrage dashboard"
 						imagePosition="left"
+						learnMorePath="/arbitrage-betting"
 					/>
 
 					<FeatureSection
@@ -240,6 +271,7 @@ function Home() {
 						imageSrc="/dashboard_screenshots/evbets.PNG"
 						imageAlt="EV bets table"
 						imagePosition="right"
+						learnMorePath="/ev-betting"
 					/>
 				</div>
 			</div>

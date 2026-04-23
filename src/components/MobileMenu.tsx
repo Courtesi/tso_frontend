@@ -93,7 +93,31 @@ function MobileMenu() {
 									onClick={() => handleNavigate('/pricing')}
 									className="w-full text-left px-4 py-3 text-white hover:bg-gray-800 rounded-lg transition-colors mb-2 font-medium cursor-pointer"
 								>
-									Upgrade Plan
+									Pricing
+								</button>
+								<button
+									onClick={() => handleNavigate('/lines')}
+									className="w-full text-left px-4 py-3 text-white hover:bg-gray-800 rounded-lg transition-colors mb-2 font-medium cursor-pointer"
+								>
+									Betting Lines
+								</button>
+								<button
+									onClick={() => handleNavigate('/arbitrage-betting')}
+									className="w-full text-left px-4 py-3 text-white hover:bg-gray-800 rounded-lg transition-colors mb-2 font-medium cursor-pointer"
+								>
+									Arbitrage Betting
+								</button>
+								<button
+									onClick={() => handleNavigate('/ev-betting')}
+									className="w-full text-left px-4 py-3 text-white hover:bg-gray-800 rounded-lg transition-colors mb-2 font-medium cursor-pointer"
+								>
+									+EV Betting
+								</button>
+								<button
+									onClick={() => handleNavigate('/faq')}
+									className="w-full text-left px-4 py-3 text-white hover:bg-gray-800 rounded-lg transition-colors mb-2 font-medium cursor-pointer"
+								>
+									FAQ
 								</button>
 
 								{currentUser && (
