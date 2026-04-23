@@ -90,7 +90,7 @@ export default function FeatureSection({
 								: 'opacity-0 translate-x-12'
 					}`}
 				>
-					<div className="lg:scale-150">
+					<div className="scale-110 lg:scale-160">
 						<img
 							src={imageSrc}
 							alt={imageAlt}

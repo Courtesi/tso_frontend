@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -76,6 +77,28 @@ function Home() {
 	}, [init]);
 
 	return (
+		<>
+		<Helmet>
+			<title>TrueShot | Real-Time Arbitrage & +EV Bet Finder</title>
+			<meta name="description" content="Find arbitrage opportunities and positive EV bets across DraftKings, FanDuel, BetMGM and 40+ sportsbooks. Live odds tracking with automated alerts." />
+			<link rel="canonical" href="https://trueshotodds.com/" />
+			<meta property="og:url" content="https://trueshotodds.com/" />
+			<meta property="og:title" content="TrueShot | Real-Time Arbitrage & +EV Bet Finder" />
+			<meta property="og:description" content="Find arbitrage opportunities and positive EV bets across DraftKings, FanDuel, BetMGM and 40+ sportsbooks." />
+			<script type="application/ld+json">{JSON.stringify({
+				"@context": "https://schema.org",
+				"@type": "SoftwareApplication",
+				"name": "TrueShot Odds",
+				"url": "https://trueshotodds.com",
+				"applicationCategory": "FinanceApplication",
+				"operatingSystem": "Web",
+				"description": "Real-time sports betting arbitrage and +EV bet finder across 40+ sportsbooks including DraftKings, FanDuel, and BetMGM.",
+				"offers": [
+					{ "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "USD" },
+					{ "@type": "Offer", "name": "Premium", "price": "0", "priceCurrency": "USD", "url": "https://trueshotodds.com/pricing" }
+				]
+			})}</script>
+		</Helmet>
 		<div className="min-h-screen text-white relative bg-gradient-to-br from-gray-900 via-indigo-900 to-indigo-950">
 
 
@@ -260,6 +283,7 @@ function Home() {
 			{/* Footer */}
 			<Footer />
 		</div>
+		</>
 	);
 }
 

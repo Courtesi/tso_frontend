@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /
+Allow: /$
+Allow: /pricing
+
+Sitemap: https://trueshotodds.com/sitemap.xml

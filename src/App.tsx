@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider } from './contexts/AuthContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { StripeProvider } from './contexts/StripeContext';
@@ -16,6 +17,7 @@ import VerificationBanner from './components/VerificationBanner';
 
 function App() {
 	return (
+		<HelmetProvider>
 		<Router>
 			<AuthProvider>
 				<SettingsProvider>
@@ -31,8 +33,7 @@ function App() {
 										<Route path="/ev-bets" element={<EVBets />} />
 										<Route path="/settings" element={<Settings />} />
 										<Route path="/pricing" element={<Subscription />} />
-										<Route path="/subscription" element={<Subscription />} />
-										<Route path="*" element={<NotFound />} />
+				<Route path="*" element={<NotFound />} />
 									</Routes>
 								</ParticlesProvider>
 							</SidebarProvider>
@@ -41,6 +42,7 @@ function App() {
 				</SettingsProvider>
 			</AuthProvider>
 		</Router>
+		</HelmetProvider>
 	);
 }
 
