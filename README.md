@@ -1,6 +1,6 @@
 # Frontend
 
-React + TypeScript + Vite frontend for TrueShot Odds arbitrage betting platform.
+React + TypeScript + Vite frontend for TrueShotOdds arbitrage betting platform.
 
 ## Quick Start
 
@@ -93,13 +93,15 @@ frontend/
 │   │   ├── AuthContext.tsx   # Authentication state
 │   │   ├── DataContext.tsx   # Arbitrage & charts data
 │   │   ├── StripeContext.tsx # Subscription state
-│   │   └── ParticlesContext.tsx
+│   │   ├── ParticlesContext.tsx
+│   │   └── ...
 │   ├── pages/                # Route components
 │   │   ├── Home.tsx          # Landing page
 │   │   ├── Dashboard.tsx     # Arbitrage opportunities
 │   │   ├── Charts.tsx        # Odds line tracking
 │   │   ├── Subscription.tsx  # Pricing & billing
-│   │   └── NotFound.tsx
+│   │   ├── NotFound.tsx
+│   │   └── ...
 │   ├── services/
 │   │   └── api.ts            # Backend API client
 │   ├── App.tsx               # Main app component with routing
@@ -148,7 +150,6 @@ React Router v7 with the following routes:
 - `/dashboard` - Arbitrage opportunities (protected)
 - `/charts` - Odds line tracking (protected)
 - `/pricing` - Subscription plans
-- `/subscription` - Alias for pricing
 - `*` - 404 Not Found
 
 ### State Management
