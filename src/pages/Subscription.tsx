@@ -161,11 +161,11 @@ function Subscription() {
 	return (
 		<>
 		<Helmet>
-			<title>Pricing | TrueShot</title>
+			<title>Pricing | TrueShotOdds</title>
 			<meta name="description" content="Start finding arbitrage and +EV bets today. Free and Premium plans available. Real-time odds tracking across 40+ sportsbooks." />
 			<link rel="canonical" href="https://trueshotodds.com/pricing" />
 			<meta property="og:url" content="https://trueshotodds.com/pricing" />
-			<meta property="og:title" content="Pricing | TrueShot" />
+			<meta property="og:title" content="Pricing | TrueShotOdds" />
 			<meta property="og:description" content="Start finding arbitrage and +EV bets today. Free and Premium plans available." />
 		</Helmet>
 		<div className="min-h-screen flex flex-col text-white relative bg-gradient-to-br from-slate-950 via-gray-950 to-slate-900">

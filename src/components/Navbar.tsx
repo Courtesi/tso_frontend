@@ -33,8 +33,8 @@ function Navbar({ onAuthModalOpen }: NavbarProps) {
 					onClick={() => navigate('/')}
 					className="md:mt-1 flex gap-2 cursor-pointer"
 				>
-					<img src="/logo.png" alt="Trueshot Logo" className="w-8" />
-					<span className="font-extrabold text-2xl text-gray-50">Trueshot</span>
+					<img src="/logo.png" alt="TrueShotOdds Logo" className="w-8" />
+					<span className="font-extrabold text-2xl text-gray-50">TrueShotOdds</span>
 				</button>
 			</div>
 

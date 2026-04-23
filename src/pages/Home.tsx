@@ -1,5 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 import { useState, useEffect, useMemo } from 'react';
+import { homeFaqs } from '../data/faqs';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useParticles } from '../contexts/ParticlesContext';
@@ -79,16 +80,16 @@ function Home() {
 	return (
 		<>
 		<Helmet>
-			<title>TrueShot | Real-Time Arbitrage & +EV Bet Finder</title>
+			<title>TrueShotOdds | Real-Time Arbitrage & +EV Bet Finder</title>
 			<meta name="description" content="Find arbitrage opportunities and positive EV bets across DraftKings, FanDuel, BetMGM and 40+ sportsbooks. Live odds tracking with automated alerts." />
 			<link rel="canonical" href="https://trueshotodds.com/" />
 			<meta property="og:url" content="https://trueshotodds.com/" />
-			<meta property="og:title" content="TrueShot | Real-Time Arbitrage & +EV Bet Finder" />
+			<meta property="og:title" content="TrueShotOdds | Real-Time Arbitrage & +EV Bet Finder" />
 			<meta property="og:description" content="Find arbitrage opportunities and positive EV bets across DraftKings, FanDuel, BetMGM and 40+ sportsbooks." />
 			<script type="application/ld+json">{JSON.stringify({
 				"@context": "https://schema.org",
 				"@type": "SoftwareApplication",
-				"name": "TrueShot Odds",
+				"name": "TrueShotOdds",
 				"url": "https://trueshotodds.com",
 				"applicationCategory": "FinanceApplication",
 				"operatingSystem": "Web",
@@ -144,7 +145,7 @@ function Home() {
 									Live Odds Straight To Your Feed
 								</h2>
 								<p className="text-xl text-gray-100 text-center lg:text-left mb-6">
-									Trueshot focuses on getting real-time arbitrage bets delivered directly to your dashboard. Don't miss out as we expand our reach on sportsbooks.
+									TrueShotOdds focuses on getting real-time arbitrage bets delivered directly to your dashboard. Don't miss out as we expand our reach on sportsbooks.
 								</p>
 							</div>
 
@@ -240,6 +241,34 @@ function Home() {
 						imageAlt="EV bets table"
 						imagePosition="right"
 					/>
+				</div>
+			</div>
+
+			{/* FAQ Section */}
+			<div className="container mx-auto px-4 py-20 max-w-3xl">
+				<h2 className="heading-hero uppercase text-3xl lg:text-5xl text-gray-100 text-center mb-12">
+					Common Questions
+				</h2>
+				<div className="space-y-3 mb-10">
+					{homeFaqs.map((faq, i) => (
+						<details key={i} className="bg-gray-800/50 rounded-xl border border-white/10 group">
+							<summary className="px-6 py-5 text-lg font-semibold text-gray-100 cursor-pointer list-none flex justify-between items-center gap-4">
+								{faq.question}
+								<svg className="w-5 h-5 text-indigo-400 flex-shrink-0 transition-transform duration-200 group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+									<path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+								</svg>
+							</summary>
+							<p className="px-6 pb-5 text-gray-300 text-lg leading-relaxed">{faq.answer}</p>
+						</details>
+					))}
+				</div>
+				<div className="text-center">
+					<button
+						onClick={() => navigate('/faq')}
+						className="text-indigo-400 hover:text-indigo-300 text-lg font-semibold transition-colors cursor-pointer"
+					>
+						View all questions →
+					</button>
 				</div>
 			</div>
 

@@ -10,8 +10,8 @@ function Footer() {
 					{/* Logo and Copyright */}
 					<div className="flex flex-col items-center md:items-start gap-2">
 						<div className="flex items-center gap-2">
-							<img src="/logo.png" alt="Trueshot Logo" className="w-6" />
-							<span className="font-extrabold text-xl text-white">Trueshot</span>
+							<img src="/logo.png" alt="TrueShotOdds Logo" className="w-6" />
+							<span className="font-extrabold text-xl text-white">TrueShotOdds</span>
 						</div>
 					</div>
 
