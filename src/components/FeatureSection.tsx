@@ -83,7 +83,11 @@ export default function FeatureSection({
 					{learnMorePath && (
 						<button
 							onClick={() => navigate(learnMorePath)}
-							className="mt-8 text-indigo-400 hover:text-indigo-300 font-semibold text-lg transition-colors cursor-pointer flex items-center gap-1"
+							className={`mt-8 text-indigo-400 hover:text-indigo-300 font-semibold text-lg transition-colors cursor-pointer flex items-center gap-1 transition-all duration-700 delay-[400ms] ${
+								isInView
+									? 'opacity-100 translate-y-0'
+									: 'opacity-0 translate-y-4'
+							}`}
 						>
 							Learn more
 							<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
